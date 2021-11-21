@@ -4,7 +4,7 @@ def q(rows, columns, board):
     DISCOUNT = 0.5
     LEARN_RATE = 0.6
 
-    #initialize q-table. key = state (a coordinate pair), value = list of 4 actions and their rewards, in order U, D, L, R.
+    #initialize q-table. key = state (a coordinate pair), value = list of 4 actions and their rewards, in order L, R, U, D.
     q = {}
     for r in range(rows):
         for c in range(columns):
