@@ -21,6 +21,5 @@ def preprocess(rows, columns, walls, boxes, goal):
                 board[r-1, c-1] = CORNER
             elif [r, c - 1] in walls and [r + 1, c] in walls:
                 board[r-1, c-1] = CORNER
-    print(board)
     return board
 

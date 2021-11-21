@@ -1,5 +1,6 @@
 import argparse
 from preprocess import *
+from q_learning import *
 
 class Sokoban_Board:
 	def __init__(self):
@@ -62,4 +63,5 @@ if args:
 	for i in range(s_board.sizeH):
 		print(''.join(s_board.board[i]))
 
-	preprocess(s_board.sizeH, s_board.sizeV, s_board.walls, s_board.boxes, s_board.storage)
+	rewards = preprocess(s_board.sizeH, s_board.sizeV, s_board.walls, s_board.boxes, s_board.storage)
+	q(s_board.sizeH, s_board.sizeV, rewards)
