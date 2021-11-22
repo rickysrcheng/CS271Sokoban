@@ -42,7 +42,7 @@ def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns):
         actions.append(3)
     if check_down_valid(curr_position, rows):
         actions.append(1)
-    else:
+    if check_up_valid(curr_position):
         actions.append(0)
     return np.random.choice(actions)
 
