@@ -13,40 +13,52 @@ from constants import *
 #     return reward
 
 def q_learn(board, start_position, goal_position, rows, columns):
-    gamma = 0.5
-    alpha = 0.6
     cur_position = start_position
     q_vals = np.zeros((rows, columns, 4))
-    actions = [UP, DOWN, LEFT, RIGHT]
+    #actions = [UP, DOWN, LEFT, RIGHT]
 
-    for k in range(1000):
+    for k in range(100):
         while not check_if_goal(cur_position, goal_position):
+            action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals)
+            old_position = cur_position
+            next_location(cur_position, action)
+            reward = board[cur_position[0], cur_position[1]]
+            print("Current position :", cur_position)
+            print("reward", reward)
+            old_q_val = q_vals[old_position[0], old_position[1], action]
+            td = reward + (DISCOUNT * np.max(q_vals[cur_position[0], cur_position[1]])) - old_q_val
+            print("TD :", td)
+            new_q_val = old_q_val + (LEARN_RATE * td)
+            print("New Q value :", new_q_val)
+            print("")
+            q_vals[old_position[0], old_position[1], action] = new_q_val
+    print(q_vals)
 
 
 def optimal_route(rows, columns, reward):
-
-
-    #new_q[cur_pos, action] = (1 - LEARN_RATE) * current_q + LEARN_RATE * (reward + DISCOUNT * max_future_q)
+    return []
+#new_q[cur_pos, action] = (1 - LEARN_RATE) * current_q + LEARN_RATE * (reward + DISCOUNT * max_future_q)
 
 def check_if_goal(cur_position, goal_position):
     if cur_position == goal_position:
         return True
     return False
 
-def epsilon_greedy(curr_position, epsilon, q_values):
+def epsilon_greedy_get_action(curr_position, epsilon, q_values):
     if np.random.random() < epsilon:
         #return argmax of q values for current position, will return an action
-        return np.argmax(q_values[curr_position])
-    return np.random.randint(0,4) #returns a random number from 0 to 4, which will indicate which of the 4 directions
+        return np.argmax(q_values[curr_position[0], curr_position[1]])
+    #return np.random.choice([UP, DOWN, LEFT, RIGHT]) #returns a random number from 0 to 4, which will indicate which of the 4 directions
+    return np.random.choice([0, 1, 2, 3])
 
 def next_location(cur_position, action):
-    if action == UP:
+    if action == 0: #UP
         cur_position[0] += -1
-    elif action == DOWN:
+    elif action == 1: #DOWN
         cur_position[0] += 1
-    elif action == LEFT:
+    elif action == 2: #LEFT
         cur_position[1] += -1
-    else: #current action = right
+    else: #current action = RIGHT
         cur_position[1] += 1
 
 #TODO: make all of this one function that accepts a direction (instead of 4 functions for 4 directions)

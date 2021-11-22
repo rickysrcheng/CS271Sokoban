@@ -64,5 +64,6 @@ if args:
 		print(''.join(s_board.board[i]))
 
 	start_position = [s_board.playerX - 1, s_board.playerY - 1]
-	rewards = preprocess(s_board.sizeH, s_board.sizeV, s_board.walls, s_board.boxes, s_board.storage)
+	reward_board = preprocess(s_board.sizeH, s_board.sizeV, s_board.walls, s_board.boxes, s_board.storage)
 	#reward(s_board.sizeH, s_board.sizeV, rewards)
+	q_learn(reward_board, start_position, s_board.storage, s_board.sizeH, s_board.sizeV)
