@@ -4,7 +4,7 @@ from constants import *
 def q_learn(board, start_position, goal_position, rows, columns):
     cur_position = start_position
     q_vals = np.zeros((rows, columns, 4))
-
+    print(cur_position)
     for k in range(100):
         while not goal_found(cur_position, goal_position):
             action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns)
@@ -31,9 +31,12 @@ def goal_found(cur_position, goal_position):
         return True
     return False
 
+#TODO: implement checks so it can't hit walls. Maybe change WALL constant to None and check for "None" or something similar.
 def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns):
-    if np.random.random() < epsilon:
+    if np.random.random() < epsilon: #return random from 0 to 1
         #return argmax of q values for current position, will return an action
+        print(q_values[curr_position[0], curr_position[1]])
+        print(np.argmax(q_values[curr_position[0], curr_position[1]]))
         return np.argmax(q_values[curr_position[0], curr_position[1]])
     actions = []     #need to check if valid first
     if check_left_valid(curr_position):
