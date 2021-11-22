@@ -1,21 +1,9 @@
 import numpy as np
 from constants import *
-# def reward(rows, columns, board):
-#     #initialize q-table. key = state (a coordinate pair), value = list of 4 actions and their rewards, in order L, R, U, D.
-#     reward = {}
-#     for r in range(rows):
-#         for c in range(columns):
-#             left = check_left_reward([r,c], board)
-#             right = check_right_reward([r,c], board, columns)
-#             up = check_up_reward([r, c], board)
-#             down = check_down_reward([r, c], board, rows)
-#             reward[tuple([r,c])] = [left, right, up, down] #can't use list as key, hence the tuple
-#     return reward
 
 def q_learn(board, start_position, goal_position, rows, columns):
     cur_position = start_position
     q_vals = np.zeros((rows, columns, 4))
-    #actions = [UP, DOWN, LEFT, RIGHT]
 
     for k in range(100):
         while not goal_found(cur_position, goal_position):
@@ -34,10 +22,9 @@ def q_learn(board, start_position, goal_position, rows, columns):
             q_vals[old_position[0], old_position[1], action] = new_q_val
     print(q_vals)
 
-
+#TODO
 def optimal_route(rows, columns, reward):
     return []
-#new_q[cur_pos, action] = (1 - LEARN_RATE) * current_q + LEARN_RATE * (reward + DISCOUNT * max_future_q)
 
 def goal_found(cur_position, goal_position):
     if cur_position == goal_position:
@@ -48,7 +35,6 @@ def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns):
     if np.random.random() < epsilon:
         #return argmax of q values for current position, will return an action
         return np.argmax(q_values[curr_position[0], curr_position[1]])
-    #return np.random.choice([UP, DOWN, LEFT, RIGHT]) #returns a random number from 0 to 4, which will indicate which of the 4 directions
     actions = []     #need to check if valid first
     if check_left_valid(curr_position):
         actions.append(2)
