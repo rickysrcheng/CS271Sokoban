@@ -63,5 +63,6 @@ if args:
 	for i in range(s_board.sizeH):
 		print(''.join(s_board.board[i]))
 
+	start_position = [s_board.playerX - 1, s_board.playerY - 1]
 	rewards = preprocess(s_board.sizeH, s_board.sizeV, s_board.walls, s_board.boxes, s_board.storage)
-	q(s_board.sizeH, s_board.sizeV, rewards)
+	#reward(s_board.sizeH, s_board.sizeV, rewards)

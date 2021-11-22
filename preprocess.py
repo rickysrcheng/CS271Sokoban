@@ -1,9 +1,5 @@
 import numpy as np
-WALL = -1000
-FLOOR = -1
-CORNER = -1100
-GOAL = 1000
-
+from constants import *
 def preprocess(rows, columns, walls, boxes, goal):
     board = np.full((rows, columns), FLOOR)
     for r in range(1, rows + 1):
