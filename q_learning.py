@@ -18,8 +18,8 @@ def q_learn(board, start_position, goal_position, rows, columns):
     #actions = [UP, DOWN, LEFT, RIGHT]
 
     for k in range(100):
-        while not check_if_goal(cur_position, goal_position):
-            action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals)
+        while not goal_found(cur_position, goal_position):
+            action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns)
             old_position = cur_position
             next_location(cur_position, action)
             reward = board[cur_position[0], cur_position[1]]
@@ -39,17 +39,27 @@ def optimal_route(rows, columns, reward):
     return []
 #new_q[cur_pos, action] = (1 - LEARN_RATE) * current_q + LEARN_RATE * (reward + DISCOUNT * max_future_q)
 
-def check_if_goal(cur_position, goal_position):
+def goal_found(cur_position, goal_position):
     if cur_position == goal_position:
         return True
     return False
 
-def epsilon_greedy_get_action(curr_position, epsilon, q_values):
+def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns):
     if np.random.random() < epsilon:
         #return argmax of q values for current position, will return an action
         return np.argmax(q_values[curr_position[0], curr_position[1]])
     #return np.random.choice([UP, DOWN, LEFT, RIGHT]) #returns a random number from 0 to 4, which will indicate which of the 4 directions
-    return np.random.choice([0, 1, 2, 3])
+    actions = []     #need to check if valid first
+    if check_left_valid(curr_position):
+        actions.append(2)
+    if check_right_valid(curr_position, columns):
+        actions.append(3)
+    if check_down_valid(curr_position, rows):
+        actions.append(1)
+    else:
+        actions.append(0)
+    return np.random.choice(actions)
+
 
 def next_location(cur_position, action):
     if action == 0: #UP
@@ -61,31 +71,26 @@ def next_location(cur_position, action):
     else: #current action = RIGHT
         cur_position[1] += 1
 
-#TODO: make all of this one function that accepts a direction (instead of 4 functions for 4 directions)
-def check_left_reward(cur_position, board):
-    row = cur_position[0]
+def check_left_valid(cur_position):
     column = cur_position[1]
-    if(column != 0): #if column value is not already at the very left
-        return board[row, column - 1]
-    return None
+    if column != 0: #if column value is not already at the very left
+        return True
+    return False
 
-def check_right_reward(cur_position, board, num_columns):
-    row = cur_position[0]
+def check_right_valid(cur_position,num_columns):
     column = cur_position[1]
     if (column != num_columns - 1):  # if column value is not already at the very right
-        return board[row, column + 1]
-    return None
+        return True
+    return False
 
-def check_up_reward(cur_position, board):
+def check_up_valid(cur_position):
     row = cur_position[0]
-    column = cur_position[1]
     if (row != 0):  # if row value is not already at the very top
-        return board[row - 1, column]
-    return None
+        return True
+    return False
 
-def check_down_reward(cur_position, board, num_rows):
+def check_down_valid(cur_position, num_rows):
     row = cur_position[0]
-    column = cur_position[1]
     if (row != num_rows - 1):  # if row value is not already at the very bottom
-        return board[row + 1, column]
-    return None
+        return True
+    return False
