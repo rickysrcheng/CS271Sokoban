@@ -1,8 +1,7 @@
-WALL = -1000
 FLOOR = -1
-CORNER = -1100
+BLOCKED = -1000
 GOAL = 1000
-EPSILON = .8
+EPSILON = .8 #reset to .8
 UP = 'UP'
 DOWN = 'DOWN'
 LEFT = 'LEFT'
