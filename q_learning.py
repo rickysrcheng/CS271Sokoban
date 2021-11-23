@@ -74,7 +74,7 @@ def check_left_valid(cur_position, board):
         return True
     return False
 
-#Checks that you won't go off right side of map, and that you're not running into a wall or deadlock.
+#Checks that you won't go off right side of map, and that you're not running into a wall.
 def check_right_valid(cur_position,board, num_columns):
     column = cur_position[1]
     check_inaccessible = board[cur_position[0], cur_position[1] + 1]
@@ -82,7 +82,7 @@ def check_right_valid(cur_position,board, num_columns):
         return True
     return False
 
-#Checks that you won't go off the top side of the map, and that you're not running into a wall or deadlock.
+#Checks that you won't go off the top side of the map, and that you're not running into a wall.
 def check_up_valid(cur_position, board):
     row = cur_position[0]
     check_inaccessible = board[cur_position[0] - 1, cur_position[1]]
@@ -90,7 +90,7 @@ def check_up_valid(cur_position, board):
         return True
     return False
 
-#Checks that you won't go off the bottom side of the map, and that you're not running into a wall or deadlock.
+#Checks that you won't go off the bottom side of the map, and that you're not running into a wall.
 def check_down_valid(cur_position, board, num_rows):
     row = cur_position[0]
     check_inaccessible = board[cur_position[0] + 1, cur_position[1]]
