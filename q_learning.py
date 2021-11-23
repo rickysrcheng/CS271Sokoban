@@ -4,7 +4,7 @@ from constants import *
 def q_learn(board, start_position, goal_position, rows, columns):
     cur_position = start_position
     q_vals = np.zeros((rows, columns, 4))
-    print(cur_position)
+    print("Current position :", cur_position)
     for k in range(100):
         while not goal_found(cur_position, goal_position):
             action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns, board)
