@@ -70,7 +70,7 @@ def next_location(cur_position, action):
 def check_left_valid(cur_position, board):
     column = cur_position[1]
     check_inaccessible = board[cur_position[0], cur_position[1] - 1]
-    if column != 0 and check_inaccessible != BLOCKED:
+    if column != 0 and check_inaccessible != DEADLOCK:
         return True
     return False
 
@@ -78,7 +78,7 @@ def check_left_valid(cur_position, board):
 def check_right_valid(cur_position,board, num_columns):
     column = cur_position[1]
     check_inaccessible = board[cur_position[0], cur_position[1] + 1]
-    if (column != num_columns - 1) and check_inaccessible != BLOCKED:  # if column value is not already at the very right
+    if (column != num_columns - 1) and check_inaccessible != DEADLOCK:  # if column value is not already at the very right
         return True
     return False
 
@@ -86,7 +86,7 @@ def check_right_valid(cur_position,board, num_columns):
 def check_up_valid(cur_position, board):
     row = cur_position[0]
     check_inaccessible = board[cur_position[0] - 1, cur_position[1]]
-    if (row != 0) and check_inaccessible != BLOCKED:  # if row value is not already at the very top
+    if (row != 0) and check_inaccessible != DEADLOCK:  # if row value is not already at the very top
         return True
     return False
 
@@ -94,6 +94,6 @@ def check_up_valid(cur_position, board):
 def check_down_valid(cur_position, board, num_rows):
     row = cur_position[0]
     check_inaccessible = board[cur_position[0] + 1, cur_position[1]]
-    if (row != num_rows - 1) and check_inaccessible != BLOCKED:  # if row value is not already at the very bottom
+    if (row != num_rows - 1) and check_inaccessible != DEADLOCK:  # if row value is not already at the very bottom
         return True
     return False

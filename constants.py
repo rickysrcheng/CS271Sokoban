@@ -1,5 +1,7 @@
 FLOOR = -1
 BLOCKED = -1000
+WALL = -1000
+DEADLOCK = -1000
 GOAL = 1000
 EPSILON = .8 #reset to .8
 UP = 'UP'
