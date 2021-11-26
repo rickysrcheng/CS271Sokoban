@@ -66,7 +66,7 @@ if args:
 	print("")
 	start_position = [s_board.playerX - 1, s_board.playerY - 1]
 	reward_board = preprocess(s_board.sizeH, s_board.sizeV, s_board.walls, s_board.boxes, s_board.storage)
-	goal = [s_board.storage[0][0] - 1, s_board.storage[0][1] - 1]
-	print("Goal location: ", goal)
+
+	print("Goal locations: ", s_board.storage)
 	#reward(s_board.sizeH, s_board.sizeV, rewards)
-	q_learn(reward_board, start_position, goal, s_board.sizeH, s_board.sizeV)
+	q_learn(reward_board, s_board.boxes, start_position, s_board.storage, s_board.sizeH, s_board.sizeV)
