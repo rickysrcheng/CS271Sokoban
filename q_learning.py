@@ -1,5 +1,6 @@
 import numpy as np
 from constants import *
+import queue
 
 def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     q_vals = np.zeros((rows, columns, 4))
@@ -13,12 +14,13 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
         print("Current position :", cur_position)
         print("Boxes positions: ", start_boxes)
 
-        # Episode ends if all boxes are on goals or # of steps is reached
+        #Episode ends if all boxes are on goals or # of steps is reached
         while not goal_found(cur_position, goal_positions, cur_boxes) and step != 100:
+            old_box_positions = cur_boxes
             action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns, board, cur_boxes)
             old_position = [cur_pos for cur_pos in cur_position] # deep copy, otherwise old_position is overwritten after next_location()
 
-            # Agent recieves reward if it pushes a box onto a goal
+            # Agent receives reward if it pushes a box onto a goal
             box_reward = next_location(cur_position, action, board, cur_boxes, goal_positions)
             reward = board[cur_position[0], cur_position[1]] + box_reward
 
@@ -28,14 +30,71 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             #print("reward", reward)
             old_q_val = q_vals[old_position[0], old_position[1], action]
             td = reward + (DISCOUNT * np.max(q_vals[cur_position[0], cur_position[1]])) - old_q_val
-            #print("TD :", td)
             new_q_val = old_q_val + (LEARN_RATE * td)
-            #print("New Q value :", new_q_val)
-            #print("")
             q_vals[old_position[0], old_position[1], action] = new_q_val
             step += 1
     # Final q_values after all episodes ran
-    print(q_vals)
+    #print(q_vals)
+
+#Checks where boxes can be potentially moved. Once we have this, we can use the Q table to check which move would result
+#in the highest q value, and move our agent to perform the agent.
+def possible_box_moves(cur_boxes, board):
+    #in order for a box to be moved into a certain position,
+    #1) the position it is moving into must not be obstructed.
+    #2) The agent must be able to push from the opposite side of the box.
+    unobstructed_box_moves = {}
+    for box in cur_boxes:
+        #Check whether box has space to move up, down, left, right. Only considers if space is wall.
+        actions = []
+        if is_up_potential_move(box, board):
+            actions.append(0)
+        if is_down_potential_move(box, board):
+            actions.append(1)
+        if is_left_potential_move(box, board):
+            actions.append(2)
+        if is_right_potential_move(box, board):
+            actions.append(3)
+        unobstructed_box_moves[box] = actions
+
+    #now that we have all the potential actions for boxes, we need to check if the agent
+    #can actually reach the "push" location it needs to be in. For this, a pathfinding algorithm can be used.
+    
+
+
+
+
+#Parameters: accepts a box's coordinates and the board.
+#Note: may want to make sure that AGENT spot is also counted as floor.
+def is_left_potential_move(box, board):
+    #check if to the left is a wall
+    #check if to the right is an empty space (so the agent can occupy it)
+    if(board[box[0], box[1] - 1] != WALL and board[box[0], box[1] + 1] == FLOOR):
+        return True
+    return False
+
+# Parameters: accepts a box's coordinates and the board.
+def is_right_potential_move(box, board):
+    # check if to the right is a wall
+    # check if to the left is an empty space (so the agent can occupy it)
+    if (board[box[0], box[1] + 1] != WALL and board[box[0], box[1] - 1] == FLOOR):
+        return True
+    return False
+
+# Parameters: accepts a box's coordinates and the board.
+def is_up_potential_move(box, board):
+    # check if up is a wall
+    # check if down is an empty space (so the agent can occupy it)
+    if (board[box[0] - 1, box[1]] != WALL and board[box[0] + 1, box[1]] == FLOOR):
+        return True
+    return False
+
+# Parameters: accepts a box's coordinates and the board.
+def is_down_potential_move(box, board):
+    # check if down is a wall
+    # check if up is an empty space (so the agent can occupy it)
+    if (board[box[0] + 1, box[1]] != WALL and board[box[0] -1, box[1]] == FLOOR):
+        return True
+    return False
 
 #TODO
 def optimal_route(rows, columns, reward):

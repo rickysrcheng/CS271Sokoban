@@ -1,7 +1,7 @@
 import argparse
 from preprocess import *
 from q_learning import *
-
+from pathfinder import *
 class Sokoban_Board:
 	def __init__(self):
 		self.board = None
@@ -66,7 +66,8 @@ if args:
 	print("")
 	start_position = [s_board.playerX - 1, s_board.playerY - 1]
 	reward_board = preprocess(s_board.sizeH, s_board.sizeV, s_board.walls, s_board.boxes, s_board.storage)
-
+	print(reward_board)
 	print("Goal locations: ", s_board.storage)
 	#reward(s_board.sizeH, s_board.sizeV, rewards)
 	q_learn(reward_board, s_board.boxes, start_position, s_board.storage, s_board.sizeH, s_board.sizeV)
+
