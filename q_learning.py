@@ -62,36 +62,31 @@ def possible_box_moves(cur_boxes, board, q_vals, cur_position):
         #Check whether box has space to move up, down, left, right. Only considers if space is wall.
         #Also checks that the box location in question is actually reachable by using pathfinder.
         actions_to_q_vals = {}
-        actions = []
         pathways = {}
         up = is_up_potential_move(box, board, cur_position, cur_boxes)
         down = is_down_potential_move(box, board, cur_position, cur_boxes)
         left = is_left_potential_move(box, board, cur_position, cur_boxes)
         right = is_right_potential_move(box, board, cur_position, cur_boxes)
-        if up != [-1]: #First check if box can be moved up and agent can reach location.
-            actions.append(0)
+        if up != [INVALID]: #First check if box can be moved up and agent can reach location.
             #calculate q value of action 0's at box position:
-            q_value = q_vals[box[0], box[1], 0]
-            actions_to_q_vals[0] = q_value
-            pathways[0] = up
-        if down != [-1]:
-            actions.append(1)
+            q_value = q_vals[box[0], box[1], UP]
+            actions_to_q_vals[UP] = q_value
+            pathways[UP] = up
+        if down != [INVALID]:
             #calculate q value of action 1 at box's position:
-            q_value = q_vals[box[0], box[1], 1]
-            actions_to_q_vals[1] = q_value
-            pathways[1] = down
-        if left != [-1]:
-            actions.append(2)
+            q_value = q_vals[box[0], box[1], DOWN]
+            actions_to_q_vals[DOWN] = q_value
+            pathways[DOWN] = down
+        if left != [INVALID]:
             #calculate q value of action 2 at box's position:
-            q_value = q_vals[box[0], box[1], 2]
-            actions_to_q_vals[2] = q_value
-            pathways[2] = left
-        if right != [-1]:
-            actions.append(3)
+            q_value = q_vals[box[0], box[1], LEFT]
+            actions_to_q_vals[LEFT] = q_value
+            pathways[LEFT] = left
+        if right != [INVALID]:
             #calculate q value of action 3 at box's position:
-            q_value = q_vals[box[0], box[1], 3]
-            actions_to_q_vals[3] = q_value
-            pathways[3] = right
+            q_value = q_vals[box[0], box[1], RIGHT]
+            actions_to_q_vals[RIGHT] = q_value
+            pathways[RIGHT] = right
         if(pathways):
             boxes_and_pathways[tuple(box)] = pathways
         box_dict[tuple(box)] = actions_to_q_vals
@@ -104,8 +99,8 @@ def possible_box_moves(cur_boxes, board, q_vals, cur_position):
 #TODO: if ties then randomize choice?
 def choose_box_and_action(box_dict, boxes_and_pathways):
     max_choices = {} #This will be a dict of tuples. {Box_Coordinate : (max action: q_value)}
-    overall_best_box = [-1, -1]
-    overall_best_action = -1
+    overall_best_box = [INVALID, INVALID]
+    overall_best_action = INVALID
     overall_best_q = -10000
     for box in box_dict:
         if(box_dict.get(box)):
@@ -116,8 +111,8 @@ def choose_box_and_action(box_dict, boxes_and_pathways):
                 overall_best_action = best_action
                 overall_best_box = list(box)
             max_choices[box] = [best_action, best_q]
-    if(overall_best_box == [-1, -1]):
-        return [-1]
+    if(overall_best_box == [INVALID, INVALID]):
+        return [INVALID]
     print("Overall best box: ", overall_best_box)
     print("Overall best action: ", overall_best_action)
     best_path = boxes_and_pathways[tuple(overall_best_box)][overall_best_action]
@@ -131,40 +126,40 @@ def is_left_potential_move(box, board, cur_position, box_positions):
     #check that agent can reach the location to the right of the box using pathfinder.
     path = shortest_path_actions(board, [box[0], box[1] + 1], cur_position, box_positions)
     #print("Left path: ", path)
-    if(board[box[0], box[1] - 1] != WALL and path != [-1]):
-        path.append(2)
+    if(board[box[0], box[1] - 1] != WALL and path != [INVALID]):
+        path.append(LEFT)
         return path
-    return [-1]
+    return [INVALID]
 
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_right_potential_move(box, board, cur_position, box_positions):
     # check if to the right is a wall
     # check if to the left is an empty space (so the agent can occupy it)
     path = shortest_path_actions(board, [box[0], box[1] - 1], cur_position, box_positions)
-    if (board[box[0], box[1] + 1] != WALL and path != [-1]):
-        path.append(3)
+    if (board[box[0], box[1] + 1] != WALL and path != [INVALID]):
+        path.append(RIGHT)
         return path
-    return [-1]
+    return [INVALID]
 
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_up_potential_move(box, board, cur_position, box_positions):
     # check if up is a wall
     # check if down is an empty space (so the agent can occupy it)
     path = shortest_path_actions(board, [box[0] + 1, box[1]], cur_position, box_positions)
-    if (board[box[0] - 1, box[1]] != WALL and path != [-1]):
-        path.append(0)
+    if (board[box[0] - 1, box[1]] != WALL and path != [INVALID]):
+        path.append(UP)
         return path
-    return [-1]
+    return [INVALID]
 
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_down_potential_move(box, board, cur_position, box_positions):
     # check if down is a wall
     # check if up is an empty space (so the agent can occupy it)
     path = shortest_path_actions(board, [box[0] - 1, box[1]], cur_position, box_positions)
-    if (board[box[0] + 1, box[1]] != WALL and path != [-1]):
-        path.append(1)
+    if (board[box[0] + 1, box[1]] != WALL and path != [INVALID]):
+        path.append(DOWN)
         return path
-    return [-1]
+    return [INVALID]
 
 #TODO
 def optimal_route(rows, columns, reward):
@@ -187,15 +182,15 @@ def epsilon_greedy(epsilon):
 def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, board, boxes):
     actions = []  #making list of valid moves
     if check_up_valid(curr_position, board, boxes):
-        actions.append(0)
+        actions.append(UP)
     if check_down_valid(curr_position, board, rows, boxes):
-        actions.append(1)
+        actions.append(DOWN)
     if check_left_valid(curr_position, board, boxes):
-        actions.append(2)
+        actions.append(LEFT)
     if check_right_valid(curr_position, board, columns, boxes):
-        actions.append(3)
+        actions.append(RIGHT)
 
-    total_actions = [0, 1, 2, 3]
+    total_actions = [UP, DOWN, LEFT, RIGHT]
     exclude = [i for i in actions + total_actions if i not in actions or i not in total_actions]
     m = np.zeros(4, dtype=bool)
     m[exclude] = True
@@ -212,16 +207,16 @@ def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, b
 def next_location(cur_position, actions, board, boxes, goals):
     reward = 0
     for action in actions:
-        if action == 0: #UP                                #move_row, move_column
+        if action == UP:                                 #move_row, move_column
             reward = move_box(cur_position, board, boxes, -1, 0, goals)
             cur_position[0] += -1
-        elif action == 1: #DOWN
+        elif action == DOWN:
             reward = move_box(cur_position, board, boxes, 1, 0, goals)
             cur_position[0] += 1
-        elif action == 2: #LEFT
+        elif action == LEFT:
             reward = move_box(cur_position, board, boxes, 0, -1, goals)
             cur_position[1] += -1
-        else: #current action = RIGHT
+        else:
             reward = move_box(cur_position, board, boxes, 0, 1, goals)
             cur_position[1] += 1
     return reward
