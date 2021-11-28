@@ -253,6 +253,33 @@ def can_move_box(cur_position, board, boxes, move_row, move_col):
 
     return is_box, can_push
 
+# Check if we push the box into a deadlock
+def detect_deadlock(cur_position, board, boxes, move_row, move_col, goals):
+    idx = boxes.index([cur_position[0] + move_row * 2, cur_position[1] + move_col * 2])
+    curBoxRow = boxes[idx][0]
+    curBoxCol = boxes[idx][1]
+    isDeadlock = False
+    if boxes[idx] in goals:
+        return isDeadlock
+
+    # if in a preprocessed deadlock state (non-goal corners), it's a deadlock
+    if board[boxes[idx]] == DEADLOCK:
+        return True
+
+
+    # TODO:
+    # non-goal corners are preprocessed into reward board
+    # check deadlocks caused by walls and boxes in 3x3 grid
+    # ex   #$_
+    #      _$#
+    #      ___ is a deadlock for box just pushed
+    # idea: create a hashtable for deadlocks to save on processing speed every iteration
+
+    # TODO:
+    # if box by a wall, if there are no clear directions for the box to reach a storage along the wall, it's a deadlock
+
+    return isDeadlock
+
 # If there is a pushable box, changes the position of that box
 # If box is moved onto a goal, return GOAL reward. If not, return no reward
 def move_box(cur_position, board, boxes, move_row, move_col, goals):
