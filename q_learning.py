@@ -16,7 +16,7 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
 
         #Episode ends if all boxes are on goals or # of steps is reached
         while not goal_found(cur_position, goal_positions, cur_boxes) and step != 100:
-            old_box_positions = cur_boxes
+            possible_box_moves(cur_boxes, board, q_vals)
             action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns, board, cur_boxes)
             old_position = [cur_pos for cur_pos in cur_position] # deep copy, otherwise old_position is overwritten after next_location()
 
@@ -38,28 +38,39 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
 
 #Checks where boxes can be potentially moved. Once we have this, we can use the Q table to check which move would result
 #in the highest q value, and move our agent to perform the agent.
-def possible_box_moves(cur_boxes, board):
+def possible_box_moves(cur_boxes, board, q_vals):
     #in order for a box to be moved into a certain position,
     #1) the position it is moving into must not be obstructed.
     #2) The agent must be able to push from the opposite side of the box.
-    unobstructed_box_moves = {}
+    box_dict = {}
     for box in cur_boxes:
         #Check whether box has space to move up, down, left, right. Only considers if space is wall.
+        actions_to_q_vals = {}
         actions = []
         if is_up_potential_move(box, board):
             actions.append(0)
+            #calculate q value of action 0's at box position:
+            q_value = q_vals[box[0], box[1], 0]
+            actions_to_q_vals[0] = q_value
         if is_down_potential_move(box, board):
             actions.append(1)
+            #calculate q value of action 1 at box's position:
+            q_value = q_vals[box[0], box[1], 1]
+            actions_to_q_vals[1] = q_value
         if is_left_potential_move(box, board):
             actions.append(2)
+            #calculate q value of action 2 at box's position:
+            q_value = q_vals[box[0], box[1], 2]
+            actions_to_q_vals[2] = q_value
         if is_right_potential_move(box, board):
             actions.append(3)
-        unobstructed_box_moves[box] = actions
-
+            #calculate q value of action 3 at box's position:
+            q_value = q_vals[box[0], box[1], 3]
+            actions_to_q_vals[3] = q_value
+        box_dict[tuple(box)] = actions_to_q_vals
+    print(box_dict)
     #now that we have all the potential actions for boxes, we need to check if the agent
     #can actually reach the "push" location it needs to be in. For this, a pathfinding algorithm can be used.
-    
-
 
 
 

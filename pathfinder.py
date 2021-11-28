@@ -1,15 +1,11 @@
-import queue
 from constants import *
-import sys
-from collections import deque
 import numpy as np
-
+#I used https://levelup.gitconnected.com/solve-a-maze-with-python-e9f0580979a1
 def shortest_path_actions(board, start_position, end_position):
     board = np.array(board)
-    board[board == -1000] = 0
-    board[board == -1] = 0
-    board[board == -1001] = 1
-    print(board)
+    board[board == -DEADLOCK] = 0
+    board[board == FLOOR] = 0
+    board[board == WALL] = 1
     start = start_position[0], start_position[1]
     end = end_position[0], end_position[1]
     m = []
@@ -64,11 +60,6 @@ def make_step(k, m, board):
                 if j<len(m[i])-1 and m[i][j+1] == 0 and board[i][j+1] == 0:
                     m[i][j+1] = k + 1
 
-def print_m(m, board, start, end):
-    for i in range(len(m)):
-        for j in range(len(m[i])):
-            print( str(m[i][j]).ljust(2),end=' ')
-        print()
 
 board = [[-1001, -1001, -1001, -1001, -1001, -1001, -1001, -1001],
                  [-1001, -1000, -1000, -1001, -1000, -1, -1000, -1001],
@@ -78,5 +69,5 @@ board = [[-1001, -1001, -1001, -1001, -1001, -1001, -1001, -1001],
                  [-1001, -1000, -1, -1, -1, -1, -1, -1001],
                  [-1001, -1000, -1, -1000, -1001, -1000, -1000, -1001],
                  [-1001, -1001, -1001, -1001, -1001, -1001, -1001, -1001]]
-shortest_path_actions(board, [1, 1], [6, 6])
+#shortest_path_actions(board, [1, 1], [6, 6])
 
