@@ -1,10 +1,12 @@
 import numpy as np
 from constants import *
+from pathfinder import *
 import queue
+import random
 
 def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     q_vals = np.zeros((rows, columns, 4))
-    for k in range(100):
+    for k in range(1000):
         # Restart episode
         print("\nStart episode")
         cur_position = [start_pos for start_pos in start_position] #deep copy
@@ -15,9 +17,21 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
         print("Boxes positions: ", start_boxes)
 
         #Episode ends if all boxes are on goals or # of steps is reached
-        while not goal_found(cur_position, goal_positions, cur_boxes) and step != 100:
-            possible_box_moves(cur_boxes, board, q_vals)
-            action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns, board, cur_boxes)
+        while not goal_found(cur_position, goal_positions, cur_boxes) and step != 300:
+            box_and_moves = possible_box_moves(cur_boxes, board, q_vals, cur_position) #returns overall best box, overall best action
+            if box_and_moves[0] == [-1]:
+                break
+            #action = epsilon_greedy_get_action(cur_position, .5, q_vals, rows, columns, board, cur_boxes)
+            action = []
+            if (epsilon_greedy(EPSILON)): #if less than epsilon, than choose optimal value.
+                action = box_and_moves[0]
+            else: #action is randomly chosen from list of paths.
+                paths = []
+                for b in box_and_moves[1]:
+                    p = box_and_moves[1].get(b)
+                    for k in p:
+                        paths.append(p[k])
+                action = random.choice(paths)
             old_position = [cur_pos for cur_pos in cur_position] # deep copy, otherwise old_position is overwritten after next_location()
 
             # Agent receives reward if it pushes a box onto a goal
@@ -34,50 +48,61 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             q_vals[old_position[0], old_position[1], action] = new_q_val
             step += 1
     # Final q_values after all episodes ran
-    #print(q_vals)
+    print(q_vals)
 
 #Checks where boxes can be potentially moved. Once we have this, we can use the Q table to check which move would result
 #in the highest q value, and move our agent to perform the agent.
-def possible_box_moves(cur_boxes, board, q_vals):
+def possible_box_moves(cur_boxes, board, q_vals, cur_position):
     #in order for a box to be moved into a certain position,
     #1) the position it is moving into must not be obstructed.
     #2) The agent must be able to push from the opposite side of the box.
     box_dict = {}
+    boxes_and_pathways = {}
     for box in cur_boxes:
         #Check whether box has space to move up, down, left, right. Only considers if space is wall.
+        #Also checks that the box location in question is actually reachable by using pathfinder.
         actions_to_q_vals = {}
         actions = []
-        if is_up_potential_move(box, board):
+        pathways = {}
+        up = is_up_potential_move(box, board, cur_position, cur_boxes)
+        down = is_down_potential_move(box, board, cur_position, cur_boxes)
+        left = is_left_potential_move(box, board, cur_position, cur_boxes)
+        right = is_right_potential_move(box, board, cur_position, cur_boxes)
+        if up != [-1]: #First check if box can be moved up and agent can reach location.
             actions.append(0)
             #calculate q value of action 0's at box position:
             q_value = q_vals[box[0], box[1], 0]
             actions_to_q_vals[0] = q_value
-        if is_down_potential_move(box, board):
+            pathways[0] = up
+        if down != [-1]:
             actions.append(1)
             #calculate q value of action 1 at box's position:
             q_value = q_vals[box[0], box[1], 1]
             actions_to_q_vals[1] = q_value
-        if is_left_potential_move(box, board):
+            pathways[1] = down
+        if left != [-1]:
             actions.append(2)
             #calculate q value of action 2 at box's position:
             q_value = q_vals[box[0], box[1], 2]
             actions_to_q_vals[2] = q_value
-        if is_right_potential_move(box, board):
+            pathways[2] = left
+        if right != [-1]:
             actions.append(3)
             #calculate q value of action 3 at box's position:
             q_value = q_vals[box[0], box[1], 3]
             actions_to_q_vals[3] = q_value
+            pathways[3] = right
+        if(pathways):
+            boxes_and_pathways[tuple(box)] = pathways
         box_dict[tuple(box)] = actions_to_q_vals
-    print(box_dict)
-    choose_box_and_action(box_dict)
-    #return box_dict
-    #now that we have all the potential actions for boxes, we need to check if the agent
-    #can actually reach the "push" location it needs to be in. For this, a pathfinding algorithm can be used.
+    #print(box_dict)
+    print("boxes and pathways", boxes_and_pathways)
+    return [choose_box_and_action(box_dict, boxes_and_pathways), boxes_and_pathways]
 
 #Accepts the dictionary of dictionary that is {box_locations: {actions: q values}}
 #From the dictionary, finds the box and its corresponding action that results in the highest q value.
 #TODO: if ties then randomize choice?
-def choose_box_and_action(box_dict):
+def choose_box_and_action(box_dict, boxes_and_pathways):
     max_choices = {} #This will be a dict of tuples. {Box_Coordinate : (max action: q_value)}
     overall_best_box = [-1, -1]
     overall_best_action = -1
@@ -90,49 +115,56 @@ def choose_box_and_action(box_dict):
                 overall_best_q = best_q
                 overall_best_action = best_action
                 overall_best_box = list(box)
-            #print("Best q: ", best_q)
-            #print("Best action: ", best_action)
             max_choices[box] = [best_action, best_q]
-    #print("Best action and q value: ", max_choices)
+    if(overall_best_box == [-1, -1]):
+        return [-1]
     print("Overall best box: ", overall_best_box)
     print("Overall best action: ", overall_best_action)
+    best_path = boxes_and_pathways[tuple(overall_best_box)][overall_best_action]
+    print("Overall best path: ", best_path)
+    return best_path
 
-
-
-
-
-#Parameters: accepts a box's coordinates and the board.
-#Note: may want to make sure that AGENT spot is also counted as floor.
-def is_left_potential_move(box, board):
+#Parameters: accepts a box's coordinates, current agent position, and the board.
+#Returns the path needed to push the box into the position.
+def is_left_potential_move(box, board, cur_position, box_positions):
     #check if to the left is a wall
-    #check if to the right is an empty space (so the agent can occupy it)
-    if(board[box[0], box[1] - 1] != WALL and board[box[0], box[1] + 1] == FLOOR):
-        return True
-    return False
+    #check that agent can reach the location to the right of the box using pathfinder.
+    path = shortest_path_actions(board, [box[0], box[1] + 1], cur_position, box_positions)
+    #print("Left path: ", path)
+    if(board[box[0], box[1] - 1] != WALL and path != [-1]):
+        path.append(2)
+        return path
+    return [-1]
 
-# Parameters: accepts a box's coordinates and the board.
-def is_right_potential_move(box, board):
+# Parameters: accepts a box's coordinates, current agent position, and the board.
+def is_right_potential_move(box, board, cur_position, box_positions):
     # check if to the right is a wall
     # check if to the left is an empty space (so the agent can occupy it)
-    if (board[box[0], box[1] + 1] != WALL and board[box[0], box[1] - 1] == FLOOR):
-        return True
-    return False
+    path = shortest_path_actions(board, [box[0], box[1] - 1], cur_position, box_positions)
+    if (board[box[0], box[1] + 1] != WALL and path != [-1]):
+        path.append(3)
+        return path
+    return [-1]
 
-# Parameters: accepts a box's coordinates and the board.
-def is_up_potential_move(box, board):
+# Parameters: accepts a box's coordinates, current agent position, and the board.
+def is_up_potential_move(box, board, cur_position, box_positions):
     # check if up is a wall
     # check if down is an empty space (so the agent can occupy it)
-    if (board[box[0] - 1, box[1]] != WALL and board[box[0] + 1, box[1]] == FLOOR):
-        return True
-    return False
+    path = shortest_path_actions(board, [box[0] + 1, box[1]], cur_position, box_positions)
+    if (board[box[0] - 1, box[1]] != WALL and path != [-1]):
+        path.append(0)
+        return path
+    return [-1]
 
-# Parameters: accepts a box's coordinates and the board.
-def is_down_potential_move(box, board):
+# Parameters: accepts a box's coordinates, current agent position, and the board.
+def is_down_potential_move(box, board, cur_position, box_positions):
     # check if down is a wall
     # check if up is an empty space (so the agent can occupy it)
-    if (board[box[0] + 1, box[1]] != WALL and board[box[0] -1, box[1]] == FLOOR):
-        return True
-    return False
+    path = shortest_path_actions(board, [box[0] - 1, box[1]], cur_position, box_positions)
+    if (board[box[0] + 1, box[1]] != WALL and path != [-1]):
+        path.append(1)
+        return path
+    return [-1]
 
 #TODO
 def optimal_route(rows, columns, reward):
@@ -148,6 +180,9 @@ def goal_found(cur_position, goal_positions, boxes):
     if not remaining_boxes:
         return True
     return False
+
+def epsilon_greedy(epsilon):
+    return np.random.random() < epsilon  #Returns true if less than epsilon, false otherwise
 
 def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, board, boxes):
     actions = []  #making list of valid moves
@@ -174,19 +209,21 @@ def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, b
     return np.random.choice(actions)
 
 
-def next_location(cur_position, action, board, boxes, goals):
-    if action == 0: #UP
-        reward = move_box(cur_position, board, boxes, -1, 0, goals)
-        cur_position[0] += -1
-    elif action == 1: #DOWN
-        reward = move_box(cur_position, board, boxes, 1, 0, goals)
-        cur_position[0] += 1
-    elif action == 2: #LEFT
-        reward = move_box(cur_position, board, boxes, 0, -1, goals)
-        cur_position[1] += -1    
-    else: #current action = RIGHT
-        reward = move_box(cur_position, board, boxes, 0, 1, goals)
-        cur_position[1] += 1
+def next_location(cur_position, actions, board, boxes, goals):
+    reward = 0
+    for action in actions:
+        if action == 0: #UP                                #move_row, move_column
+            reward = move_box(cur_position, board, boxes, -1, 0, goals)
+            cur_position[0] += -1
+        elif action == 1: #DOWN
+            reward = move_box(cur_position, board, boxes, 1, 0, goals)
+            cur_position[0] += 1
+        elif action == 2: #LEFT
+            reward = move_box(cur_position, board, boxes, 0, -1, goals)
+            cur_position[1] += -1
+        else: #current action = RIGHT
+            reward = move_box(cur_position, board, boxes, 0, 1, goals)
+            cur_position[1] += 1
     return reward
         
 #Checks that you won't go off the left side of the map, and that you're not running into a wall.
