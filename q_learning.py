@@ -69,8 +69,35 @@ def possible_box_moves(cur_boxes, board, q_vals):
             actions_to_q_vals[3] = q_value
         box_dict[tuple(box)] = actions_to_q_vals
     print(box_dict)
+    choose_box_and_action(box_dict)
+    #return box_dict
     #now that we have all the potential actions for boxes, we need to check if the agent
     #can actually reach the "push" location it needs to be in. For this, a pathfinding algorithm can be used.
+
+#Accepts the dictionary of dictionary that is {box_locations: {actions: q values}}
+#From the dictionary, finds the box and its corresponding action that results in the highest q value.
+#TODO: if ties then randomize choice?
+def choose_box_and_action(box_dict):
+    max_choices = {} #This will be a dict of tuples. {Box_Coordinate : (max action: q_value)}
+    overall_best_box = [-1, -1]
+    overall_best_action = -1
+    overall_best_q = -10000
+    for box in box_dict:
+        if(box_dict.get(box)):
+            best_action = max(box_dict.get(box), key=box_dict.get(box).get)
+            best_q = box_dict[box][best_action]
+            if best_q > overall_best_q:
+                overall_best_q = best_q
+                overall_best_action = best_action
+                overall_best_box = list(box)
+            #print("Best q: ", best_q)
+            #print("Best action: ", best_action)
+            max_choices[box] = [best_action, best_q]
+    #print("Best action and q value: ", max_choices)
+    print("Overall best box: ", overall_best_box)
+    print("Overall best action: ", overall_best_action)
+
+
 
 
 
