@@ -2,51 +2,9 @@ import queue
 from constants import *
 import sys
 from collections import deque
+import numpy as np
 
-#taken from https://www.techiedelight.com/lee-algorithm-shortest-path-in-a-maze/
-# Below lists detail all four possible movements from a cell
-row = [-1, 0, 0, 1]
-col = [0, -1, 1, 0]
-
-
-# Function to check if it is possible to go to position (row, col)
-# from the current position. The function returns false if row, col
-# is not a valid position or has a value 0 or already visited.
-def isValid(mat, visited, row, col):
-    return (row >= 0) and (row < len(mat)) and (col >= 0) and (col < len(mat[0])) and (mat[row][col] == -1 or mat[row][col] == -1000) and not visited[row][col]
-
-def findShortestPathLength(mat, src, dest):
-    i, j = src
-    x, y = dest
-    if not mat or len(mat) == 0 or mat[i][j] == 0 or mat[x][y] == 0:
-        return -1
-    (M, N) = (len(mat), len(mat[0]))
-    visited = [[False for x in range(N)] for y in range(M)]
-    q = deque()
-    visited[i][j] = True
-    q.append((i, j, 0))
-    min_dist = sys.maxsize
-
-    while q:
-        (i, j, dist) = q.popleft()
-        if i == x and j == y:
-            min_dist = dist
-            break
-
-        for k in range(4):
-            if isValid(mat, visited, i + row[k], j + col[k]):
-                visited[i + row[k]][j + col[k]] = True
-                q.append((i + row[k], j + col[k], dist + 1))
-
-    if min_dist != sys.maxsize:
-        return min_dist
-    else:
-        return -1
-
-
-if __name__ == '__main__':
-
-    mat = [[-1001, -1001, -1001, -1001, -1001, -1001, -1001, -1001],
+a = [[-1001, -1001, -1001, -1001, -1001, -1001, -1001, -1001],
              [-1001, -1000, -1000, -1001, -1000, -1, -1000, -1001],
              [-1001, -1, -1, -1, -1, -1, -1000, -1001],
              [-1001, -1000, -1, -1000, -1001, -1, -1001, -1001],
@@ -54,13 +12,69 @@ if __name__ == '__main__':
              [-1001, -1000, -1, -1, -1, -1, -1, -1001],
              [-1001, -1000, -1, -1000, -1001, -1000, -1000, -1001],
              [-1001, -1001, -1001, -1001, -1001, -1001, -1001, -1001]]
+a = np.array(a)
+a[a == -1000] = 0
+a[a == -1] = 0
+a[a == -1001] = 1
+start = 1,1
+end = 6,6
 
-    src = (6, 6)
-    dest = (1, 1)
+def make_step(k):
+  for i in range(len(m)):
+    for j in range(len(m[i])):
+      if m[i][j] == k:
+        if i>0 and m[i-1][j] == 0 and a[i-1][j] == 0:
+          m[i-1][j] = k + 1
+        if j>0 and m[i][j-1] == 0 and a[i][j-1] == 0:
+          m[i][j-1] = k + 1
+        if i<len(m)-1 and m[i+1][j] == 0 and a[i+1][j] == 0:
+          m[i+1][j] = k + 1
+        if j<len(m[i])-1 and m[i][j+1] == 0 and a[i][j+1] == 0:
+           m[i][j+1] = k + 1
 
-    min_dist = findShortestPathLength(mat, src, dest)
+def print_m(m):
+    for i in range(len(m)):
+        for j in range(len(m[i])):
+            print( str(m[i][j]).ljust(2),end=' ')
+        print()
 
-    if min_dist != -1:
-        print("The shortest path from source to destination has length", min_dist)
-    else:
-        print("Destination cannot be reached from source")
+m = []
+for i in range(len(a)):
+    m.append([])
+    for j in range(len(a[i])):
+        m[-1].append(0)
+i,j = start
+m[i][j] = 1
+
+k = 0
+while m[end[0]][end[1]] == 0:
+    k += 1
+    make_step(k)
+
+i, j = end
+k = m[i][j]
+the_path = [(i,j)]
+actions = [] #takes actions 0, 1, 2, 3
+while k > 1:
+  if i > 0 and m[i - 1][j] == k-1:
+    i, j = i-1, j
+    the_path.append((i, j))
+    actions.append(0)
+    k-=1
+  elif j > 0 and m[i][j - 1] == k-1:
+    i, j = i, j-1
+    the_path.append((i, j))
+    actions.append(2)
+    k-=1
+  elif i < len(m) - 1 and m[i + 1][j] == k-1:
+    i, j = i+1, j
+    the_path.append((i, j))
+    actions.append(1)
+    k-=1
+  elif j < len(m[i]) - 1 and m[i][j + 1] == k-1:
+    i, j = i, j+1
+    the_path.append((i, j))
+    actions.append(3)
+    k -= 1
+
+print(actions)
