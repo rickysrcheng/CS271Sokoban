@@ -13,15 +13,15 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
 
         print("Current position :", cur_position)
         print("Boxes positions: ", start_boxes)
-
+        deadLock = False
         #Episode ends if all boxes are on goals or # of steps is reached
-        while not goal_found(cur_position, goal_positions, cur_boxes) and step != 100:
+        while not goal_found(cur_position, goal_positions, cur_boxes) and step != 100 and not deadLock:
             possible_box_moves(cur_boxes, board, q_vals)
             action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns, board, cur_boxes)
             old_position = [cur_pos for cur_pos in cur_position] # deep copy, otherwise old_position is overwritten after next_location()
 
             # Agent receives reward if it pushes a box onto a goal
-            box_reward = next_location(cur_position, action, board, cur_boxes, goal_positions)
+            box_reward, deadLock = next_location(cur_position, action, board, cur_boxes, goal_positions)
             reward = board[cur_position[0], cur_position[1]] + box_reward
 
             print("\nCurrent position :", cur_position)
@@ -149,18 +149,18 @@ def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, b
 
 def next_location(cur_position, action, board, boxes, goals):
     if action == 0: #UP
-        reward = move_box(cur_position, board, boxes, -1, 0, goals)
+        reward, deadlock = move_box(cur_position, board, boxes, -1, 0, goals)
         cur_position[0] += -1
     elif action == 1: #DOWN
-        reward = move_box(cur_position, board, boxes, 1, 0, goals)
+        reward, deadlock = move_box(cur_position, board, boxes, 1, 0, goals)
         cur_position[0] += 1
     elif action == 2: #LEFT
-        reward = move_box(cur_position, board, boxes, 0, -1, goals)
+        reward, deadlock = move_box(cur_position, board, boxes, 0, -1, goals)
         cur_position[1] += -1    
     else: #current action = RIGHT
-        reward = move_box(cur_position, board, boxes, 0, 1, goals)
+        reward, deadlock = move_box(cur_position, board, boxes, 0, 1, goals)
         cur_position[1] += 1
-    return reward
+    return reward, deadlock
         
 #Checks that you won't go off the left side of the map, and that you're not running into a wall.
 def check_left_valid(cur_position, board, boxes):
@@ -233,35 +233,63 @@ def detect_deadlock(cur_position, board, boxes, move_row, move_col, goals):
     curBoxCol = boxes[idx][1]
     isDeadlock = False
     if boxes[idx] in goals:
-        return isDeadlock
+        return False
 
     # if in a preprocessed deadlock state (non-goal corners), it's a deadlock
-    if board[boxes[idx]] == DEADLOCK:
+    if board[boxes[idx][0], boxes[idx][1]] == DEADLOCK:
         return True
 
 
     # TODO:
     # non-goal corners are preprocessed into reward board
     # check deadlocks caused by walls and boxes in 3x3 grid
-    # ex   #$_
-    #      _$#
-    #      ___ is a deadlock for box just pushed
+    # ex   #$_                                        _$_           
+    #      _$#                                        _$#
+    #      ___ is a deadlock for box just pushed but  ___ is not a deadlock
     # idea: create a hashtable for deadlocks to save on processing speed every iteration
+
 
     # TODO:
     # if box by a wall, if there are no clear directions for the box to reach a storage along the wall, it's a deadlock
-
+    # at this stage, adjacent walls are already dealt with
+    wallsOnLeft = board[curBoxRow - 1, curBoxCol - 1] == WALL and board[curBoxRow, curBoxCol - 1] == WALL and board[curBoxRow + 1, curBoxCol - 1] == WALL
+    wallsOnRight = board[curBoxRow - 1, curBoxCol + 1] == WALL and board[curBoxRow, curBoxCol + 1] == WALL and board[curBoxRow + 1, curBoxCol + 1] == WALL
+    wallsOnTop = board[curBoxRow - 1, curBoxCol - 1] == WALL and board[curBoxRow - 1, curBoxCol] == WALL and board[curBoxRow - 1, curBoxCol + 1] == WALL
+    wallsOnBot = board[curBoxRow + 1, curBoxCol - 1] == WALL and board[curBoxRow + 1, curBoxCol] == WALL and board[curBoxRow + 1, curBoxCol + 1] == WALL
+    # First deal with tunnels
+    if wallsOnLeft and wallsOnRight and not wallsOnTop and not wallsOnBot: 
+        isDeadlock = check_along_wall(board, boxes[idx], goals, 2)
+    if not wallsOnLeft and not wallsOnRight and wallsOnTop and wallsOnBot:
+        isDeadlock = False
     return isDeadlock
+
+# check if box is in an unsolvable position along the wall
+# 1: left 2: right 3: up 4: down
+def check_along_wall(board, box, goals, direction):
+    
+
+    return False
 
 # If there is a pushable box, changes the position of that box
 # If box is moved onto a goal, return GOAL reward. If not, return no reward
 def move_box(cur_position, board, boxes, move_row, move_col, goals):
+    boxReward = 0
+    isDeadLock = False
+
     is_box, can_push = can_move_box(cur_position, board, boxes, move_row, move_col)
 
     if is_box and can_push:
         idx = boxes.index([cur_position[0] + move_row, cur_position[1] + move_col])
         boxes[idx] = [cur_position[0] + move_row * 2, cur_position[1] + move_col * 2]
+        # move box, then check if the move produces a deadlock
+        isDeadLock = detect_deadlock(cur_position,board, boxes, move_row, move_col, goals)
 
-    return GOAL if is_box and can_push and boxes[idx] in goals else 0 
+    if is_box and can_push:
+        if boxes[idx] in goals:
+            boxReward = GOAL
+        elif isDeadLock:
+            boxReward = DEADLOCK
+
+    return boxReward, isDeadLock
 
 
