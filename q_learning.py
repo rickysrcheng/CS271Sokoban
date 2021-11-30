@@ -3,6 +3,7 @@ from constants import *
 
 def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     q_vals = np.zeros((rows, columns, 4))
+    print(board)
     for k in range(100):
         # Restart episode
         print("\nStart episode")
@@ -14,13 +15,13 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
         print("Boxes positions: ", start_boxes)
 
         # Episode ends if all boxes are on goals or # of steps is reached
-        while not goal_found(cur_position, goal_positions, cur_boxes) and step != 100:
-            action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns, board, cur_boxes)
+        while not goal_found(cur_position, goal_positions, cur_boxes) and not deadlocks(cur_boxes, board, goal_positions) and step != 300:
+            action = epsilon_greedy_get_action(cur_position, EPSILON, q_vals, rows, columns, board, cur_boxes, k)
             old_position = [cur_pos for cur_pos in cur_position] # deep copy, otherwise old_position is overwritten after next_location()
 
             # Agent recieves reward if it pushes a box onto a goal
             box_reward = next_location(cur_position, action, board, cur_boxes, goal_positions)
-            reward = board[cur_position[0], cur_position[1]] + box_reward
+            reward = -1 + box_reward
 
             print("\nCurrent position :", cur_position)
             print("Boxes positions: ", cur_boxes)
@@ -37,6 +38,12 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     # Final q_values after all episodes ran
     print(q_vals)
 
+def deadlocks(boxes, board, goal_positions):
+    for box in boxes:
+        if board[box[0], box[1]] == DEADLOCK and box not in goal_positions:
+            return True
+    return False
+
 #TODO
 def optimal_route(rows, columns, reward):
     return []
@@ -52,7 +59,7 @@ def goal_found(cur_position, goal_positions, boxes):
         return True
     return False
 
-def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, board, boxes):
+def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, board, boxes, k):
     actions = []  #making list of valid moves
     if check_up_valid(curr_position, board, boxes):
         actions.append(0)
@@ -68,7 +75,12 @@ def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, b
     m = np.zeros(4, dtype=bool)
     m[exclude] = True
 
-    if np.random.random() < epsilon: #return random from 0 to 1
+    ep = epsilon
+
+    if k > 50:
+        ep = .2
+
+    if np.random.random() > ep: #return random from 0 to 1
         #return argmax of q values for current position, will return an action
         #only allow actions that were deemed allowed by the above validity checks
         q_values_masked = np.ma.array(q_values[curr_position[0], curr_position[1]], mask=m)
@@ -164,6 +176,9 @@ def move_box(cur_position, board, boxes, move_row, move_col, goals):
     if is_box and can_push:
         idx = boxes.index([cur_position[0] + move_row, cur_position[1] + move_col])
         boxes[idx] = [cur_position[0] + move_row * 2, cur_position[1] + move_col * 2]
+
+        if board[boxes[idx][0], boxes[idx][1]] == DEADLOCK and boxes[idx] not in goals:
+            return DEADLOCK
 
     return GOAL if is_box and can_push and boxes[idx] in goals else 0 
 
