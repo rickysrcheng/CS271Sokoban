@@ -6,15 +6,15 @@ import random
 
 def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     q_vals = np.zeros((rows, columns, 4))
-    for k in range(1000):
+    for k in range(100000):
         # Restart episode
-        print("\nStart episode")
+        print(f"\nStart episode {k}")
         cur_position = [start_pos for start_pos in start_position] #deep copy
         cur_boxes = [row[:] for row in start_boxes]
         step = 0
 
-        print("Current position :", cur_position)
-        print("Boxes positions: ", start_boxes)
+        #print("Current position :", cur_position)
+        #print("Boxes positions: ", start_boxes)
         deadLock = False
         #Episode ends if all boxes are on goals or # of steps is reached
         while not goal_found(cur_position, goal_positions, cur_boxes) and step != 300 and not deadLock:
@@ -38,8 +38,8 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             box_reward, deadLock = next_location(cur_position, action, board, cur_boxes, goal_positions)
             reward = board[cur_position[0], cur_position[1]] + box_reward
 
-            print("\nCurrent position :", cur_position)
-            print("Boxes positions: ", cur_boxes)
+           # print("\nCurrent position :", cur_position)
+            #print("Boxes positions: ", cur_boxes)
 
             #print("reward", reward)
             old_q_val = q_vals[old_position[0], old_position[1], action]
@@ -323,7 +323,7 @@ def detect_deadlock(cur_position, board, boxes, move_row, move_col, goals):
     return isDeadlock
 
 # check if box is in an unsolvable position along the wall
-# 1: left 2: right 3: up 4: down
+# 0: up 1: down 2: left 3: right 
 def check_along_wall(board, box, goals, direction):
     
 
