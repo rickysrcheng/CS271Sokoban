@@ -4,20 +4,26 @@ from pathfinder import *
 import queue
 import random
 
+verbose = False
+printBoard = True
+
 def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     q_vals = np.zeros((rows, columns, 4))
-    for k in range(1000):
+    for episode in range(100000):
         # Restart episode
-        print("\nStart episode")
+        #print(f"\nStart episode {k}")
         cur_position = [start_pos for start_pos in start_position] #deep copy
         cur_boxes = [row[:] for row in start_boxes]
         step = 0
-
-        print("Current position :", cur_position)
-        print("Boxes positions: ", start_boxes)
-
+        boardSolution = ""
+        if printBoard:
+            boardSolution += print_board(board, cur_position, cur_boxes, goal_positions)
+        if verbose:
+            print("Current position :", cur_position)
+            print("Boxes positions: ", start_boxes)
+        deadLock = False
         #Episode ends if all boxes are on goals or # of steps is reached
-        while not goal_found(cur_position, goal_positions, cur_boxes) and step != 300:
+        while not goal_found(cur_position, goal_positions, cur_boxes) and step != 300 and not deadLock:
             box_and_moves = possible_box_moves(cur_boxes, board, q_vals, cur_position) #returns overall best box, overall best action
             if box_and_moves[0] == [-1]:
                 break
@@ -35,23 +41,54 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             old_position = [cur_pos for cur_pos in cur_position] # deep copy, otherwise old_position is overwritten after next_location()
 
             # Agent receives reward if it pushes a box onto a goal
-            box_reward = next_location(cur_position, action, board, cur_boxes, goal_positions)
+            box_reward, deadLock = next_location(cur_position, action, board, cur_boxes, goal_positions)
             reward = -1 + box_reward
 
-            print("\nCurrent position :", cur_position)
-            print("Boxes positions: ", cur_boxes)
-
+            if verbose:
+                print("\nCurrent position :", cur_position)
+                print("Boxes positions: ", cur_boxes)
+            if printBoard:
+                boardSolution += print_board(board, cur_position, cur_boxes, goal_positions)
             #print("reward", reward)
             old_q_val = q_vals[old_position[0], old_position[1], action]
             td = reward + (DISCOUNT * np.max(q_vals[cur_position[0], cur_position[1]])) - old_q_val
             new_q_val = old_q_val + (LEARN_RATE * td)
             q_vals[old_position[0], old_position[1], action] = new_q_val
             step += 1
+        if step > 10 and printBoard:
+            print(f'Episode {episode}')
+            print(boardSolution)
 
         if goal_found(cur_position, goal_positions, cur_boxes):
+            print(f'Episode {episode}')
+            print(boardSolution)
             break
     # Final q_values after all episodes ran
     print(q_vals)
+
+def print_board(board, playerPosition, boxesPositions, goalPositions):
+    m,n = board.shape
+    retString = ""
+    for r in range(m):
+        rowString = ""
+        for c in range(n):
+            if [r,c] == playerPosition:
+                rowString += "@"
+            elif [r,c] in boxesPositions:
+                if [r,c] in goalPositions:
+                    rowString += "*"
+                else:
+                    rowString += "$"
+            elif [r,c] in goalPositions:
+                rowString += "."
+            elif board[r,c] == WALL:
+                rowString += "#"
+            elif board[r,c] == FLOOR or board[r,c] == DEADLOCK:
+                rowString += " "
+        retString += rowString + "\n"
+        #print(f'{rowString}')
+
+    return retString
 
 #Checks where boxes can be potentially moved. Once we have this, we can use the Q table to check which move would result
 #in the highest q value, and move our agent to perform the agent.
@@ -93,8 +130,9 @@ def possible_box_moves(cur_boxes, board, q_vals, cur_position):
         if(pathways):
             boxes_and_pathways[tuple(box)] = pathways
         box_dict[tuple(box)] = actions_to_q_vals
-    #print(box_dict)
-    print("boxes and pathways", boxes_and_pathways)
+    if verbose:
+        print(box_dict)
+        print("boxes and pathways", boxes_and_pathways)
     return [choose_box_and_action(box_dict, boxes_and_pathways), boxes_and_pathways]
 
 #Accepts the dictionary of dictionary that is {box_locations: {actions: q values}}
@@ -116,20 +154,25 @@ def choose_box_and_action(box_dict, boxes_and_pathways):
             max_choices[box] = [best_action, best_q]
     if(overall_best_box == [INVALID, INVALID]):
         return [INVALID]
-    print("Overall best box: ", overall_best_box)
-    print("Overall best action: ", overall_best_action)
     best_path = boxes_and_pathways[tuple(overall_best_box)][overall_best_action]
-    print("Overall best path: ", best_path)
+    if verbose:
+        print("Overall best box: ", overall_best_box)
+        print("Overall best action: ", overall_best_action)
+        print("Overall best path: ", best_path)
     return best_path
 
 #Parameters: accepts a box's coordinates, current agent position, and the board.
 #Returns the path needed to push the box into the position.
 def is_left_potential_move(box, board, cur_position, box_positions):
     #check if to the left is a wall
+    if board[box[0], box[1] - 1] == WALL or [box[0], box[1] - 1] in box_positions:
+        return [INVALID]
     #check that agent can reach the location to the right of the box using pathfinder.
+    if board[box[0], box[1] + 1] == WALL or [box[0], box[1] + 1] in box_positions:
+        return [INVALID]
     path = shortest_path_actions(board, [box[0], box[1] + 1], cur_position, box_positions)
     #print("Left path: ", path)
-    if(board[box[0], box[1] - 1] != WALL and path != [INVALID]):
+    if path != [INVALID]:
         path.append(LEFT)
         return path
     return [INVALID]
@@ -137,9 +180,13 @@ def is_left_potential_move(box, board, cur_position, box_positions):
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_right_potential_move(box, board, cur_position, box_positions):
     # check if to the right is a wall
+    if board[box[0], box[1] + 1] == WALL or [box[0], box[1] + 1] in box_positions:
+        return [INVALID]
     # check if to the left is an empty space (so the agent can occupy it)
+    if board[box[0], box[1] - 1] == WALL or [box[0], box[1] - 1] in box_positions:
+        return [INVALID]
     path = shortest_path_actions(board, [box[0], box[1] - 1], cur_position, box_positions)
-    if (board[box[0], box[1] + 1] != WALL and path != [INVALID]):
+    if path != [INVALID]:
         path.append(RIGHT)
         return path
     return [INVALID]
@@ -147,9 +194,13 @@ def is_right_potential_move(box, board, cur_position, box_positions):
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_up_potential_move(box, board, cur_position, box_positions):
     # check if up is a wall
+    if board[box[0] - 1, box[1]] == WALL or [box[0] - 1, box[1]] in box_positions:
+        return [INVALID]
     # check if down is an empty space (so the agent can occupy it)
+    if board[box[0] + 1, box[1]] == WALL or [box[0] + 1, box[1]] in box_positions:
+        return [INVALID]
     path = shortest_path_actions(board, [box[0] + 1, box[1]], cur_position, box_positions)
-    if (board[box[0] - 1, box[1]] != WALL and path != [INVALID]):
+    if path != [INVALID]:
         path.append(UP)
         return path
     return [INVALID]
@@ -157,9 +208,13 @@ def is_up_potential_move(box, board, cur_position, box_positions):
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_down_potential_move(box, board, cur_position, box_positions):
     # check if down is a wall
+    if board[box[0] + 1, box[1]] == WALL or [box[0] + 1, box[1]] in box_positions:
+        return [INVALID]
     # check if up is an empty space (so the agent can occupy it)
+    if board[box[0] - 1, box[1]] == WALL or [box[0] - 1, box[1]] in box_positions: 
+        return [INVALID]
     path = shortest_path_actions(board, [box[0] - 1, box[1]], cur_position, box_positions)
-    if (board[box[0] + 1, box[1]] != WALL and path != [INVALID]):
+    if path != [INVALID]:
         path.append(DOWN)
         return path
     return [INVALID]
@@ -211,18 +266,18 @@ def next_location(cur_position, actions, board, boxes, goals):
     reward = 0
     for action in actions:
         if action == UP:                                 #move_row, move_column
-            reward = move_box(cur_position, board, boxes, -1, 0, goals)
+            reward, deadlock = move_box(cur_position, board, boxes, -1, 0, goals)
             cur_position[0] += -1
         elif action == DOWN:
-            reward = move_box(cur_position, board, boxes, 1, 0, goals)
+            reward, deadlock = move_box(cur_position, board, boxes, 1, 0, goals)
             cur_position[0] += 1
         elif action == LEFT:
-            reward = move_box(cur_position, board, boxes, 0, -1, goals)
+            reward, deadlock = move_box(cur_position, board, boxes, 0, -1, goals)
             cur_position[1] += -1
         else:
-            reward = move_box(cur_position, board, boxes, 0, 1, goals)
+            reward, deadlock = move_box(cur_position, board, boxes, 0, 1, goals)
             cur_position[1] += 1
-    return reward
+    return reward, deadlock
         
 #Checks that you won't go off the left side of the map, and that you're not running into a wall.
 def check_left_valid(cur_position, board, boxes):
@@ -289,41 +344,49 @@ def can_move_box(cur_position, board, boxes, move_row, move_col):
     return is_box, can_push
 
 # Check if we push the box into a deadlock
-def detect_deadlock(cur_position, board, boxes, move_row, move_col, goals):
-    idx = boxes.index([cur_position[0] + move_row * 2, cur_position[1] + move_col * 2])
+def detect_deadlock(cur_position, board, boxes, move_row, move_col, goals, idx):
+    if idx == -1:
+        idx = boxes.index([cur_position[0] + move_row * 2, cur_position[1] + move_col * 2])
     curBoxRow = boxes[idx][0]
     curBoxCol = boxes[idx][1]
     isDeadlock = False
     if boxes[idx] in goals:
-        return isDeadlock
+        return False
 
     # if in a preprocessed deadlock state (non-goal corners), it's a deadlock
-    if board[boxes[idx]] == DEADLOCK:
+    if board[boxes[idx][0], boxes[idx][1]] == DEADLOCK:
         return True
-
 
     # TODO:
     # non-goal corners are preprocessed into reward board
     # check deadlocks caused by walls and boxes in 3x3 grid
-    # ex   #$_
-    #      _$#
-    #      ___ is a deadlock for box just pushed
+    # ex   #$_                                        _$_           
+    #      _$#                                        _$#
+    #      ___ is a deadlock for box just pushed but  ___ is not a deadlock
     # idea: create a hashtable for deadlocks to save on processing speed every iteration
-
-    # TODO:
-    # if box by a wall, if there are no clear directions for the box to reach a storage along the wall, it's a deadlock
 
     return isDeadlock
 
 # If there is a pushable box, changes the position of that box
 # If box is moved onto a goal, return GOAL reward. If not, return no reward
 def move_box(cur_position, board, boxes, move_row, move_col, goals):
+    boxReward = 0
+    isDeadLock = False
+
     is_box, can_push = can_move_box(cur_position, board, boxes, move_row, move_col)
 
     if is_box and can_push:
         idx = boxes.index([cur_position[0] + move_row, cur_position[1] + move_col])
         boxes[idx] = [cur_position[0] + move_row * 2, cur_position[1] + move_col * 2]
+        # move box, then check if the move produces a deadlock
+        isDeadLock = detect_deadlock(cur_position,board, boxes, move_row, move_col, goals, idx)
 
-    return GOAL if is_box and can_push and boxes[idx] in goals else 0 
+    if is_box and can_push:
+        if boxes[idx] in goals:
+            boxReward = GOAL
+        elif isDeadLock:
+            boxReward = DEADLOCK
+
+    return boxReward, isDeadLock
 
 
