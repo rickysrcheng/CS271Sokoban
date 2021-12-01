@@ -36,7 +36,7 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
 
             # Agent receives reward if it pushes a box onto a goal
             box_reward = next_location(cur_position, action, board, cur_boxes, goal_positions)
-            reward = board[cur_position[0], cur_position[1]] + box_reward
+            reward = -1 + box_reward
 
             print("\nCurrent position :", cur_position)
             print("Boxes positions: ", cur_boxes)
@@ -47,6 +47,9 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             new_q_val = old_q_val + (LEARN_RATE * td)
             q_vals[old_position[0], old_position[1], action] = new_q_val
             step += 1
+
+        if goal_found(cur_position, goal_positions, cur_boxes):
+            break
     # Final q_values after all episodes ran
     print(q_vals)
 
