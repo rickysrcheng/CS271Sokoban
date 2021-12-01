@@ -9,6 +9,7 @@ printBoard = True
 
 def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     q_vals = np.zeros((rows, columns, 4))
+    moves = []
     for episode in range(100000):
         # Restart episode
         #print(f"\nStart episode {k}")
@@ -40,6 +41,8 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
                 action = random.choice(paths)
             old_position = [cur_pos for cur_pos in cur_position] # deep copy, otherwise old_position is overwritten after next_location()
 
+            moves += action 
+
             # Agent receives reward if it pushes a box onto a goal
             box_reward, deadLock = next_location(cur_position, action, board, cur_boxes, goal_positions)
             reward = -1 + box_reward
@@ -61,8 +64,10 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
 
         if goal_found(cur_position, goal_positions, cur_boxes):
             print(f'Episode {episode}')
+            print_moves(moves)
             print(boardSolution)
             break
+        moves = []
     # Final q_values after all episodes ran
     print(q_vals)
 
@@ -89,6 +94,17 @@ def print_board(board, playerPosition, boxesPositions, goalPositions):
         #print(f'{rowString}')
 
     return retString
+
+# Prints the moves of the agent's final solution 
+def print_moves(moves):
+    moves = [str(m) for m in moves]
+    str_moves = " ".join(moves)
+    str_moves = str_moves.replace("0", "U")
+    str_moves = str_moves.replace("1", "D")
+    str_moves = str_moves.replace("2", "L")
+    str_moves = str_moves.replace("3", "R")
+
+    print(len(moves), str_moves)
 
 #Checks where boxes can be potentially moved. Once we have this, we can use the Q table to check which move would result
 #in the highest q value, and move our agent to perform the agent.
