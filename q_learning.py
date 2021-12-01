@@ -65,7 +65,10 @@ def print_board(board, playerPosition, boxesPositions, goalPositions):
             if [r,c] == playerPosition:
                 rowString += "@"
             elif [r,c] in boxesPositions:
-                rowString += "$"
+                if [r,c] in goalPositions:
+                    rowString += "*"
+                else:
+                    rowString += "$"
             elif [r,c] in goalPositions:
                 rowString += "."
             elif board[r,c] == WALL:
@@ -150,7 +153,7 @@ def choose_box_and_action(box_dict, boxes_and_pathways):
 def is_left_potential_move(box, board, cur_position, box_positions):
     #check if to the left is a wall
     #check that agent can reach the location to the right of the box using pathfinder.
-    if board[box[0], box[1] + 1] == WALL:
+    if board[box[0], box[1] + 1] == WALL or [box[0], box[1] + 1] in box_positions:
         return [INVALID]
     path = shortest_path_actions(board, [box[0], box[1] + 1], cur_position, box_positions)
     #print("Left path: ", path)
@@ -163,7 +166,7 @@ def is_left_potential_move(box, board, cur_position, box_positions):
 def is_right_potential_move(box, board, cur_position, box_positions):
     # check if to the right is a wall
     # check if to the left is an empty space (so the agent can occupy it)
-    if board[box[0], box[1] - 1] == WALL:
+    if board[box[0], box[1] - 1] == WALL or [box[0], box[1] - 1] in box_positions:
         return [INVALID]
     path = shortest_path_actions(board, [box[0], box[1] - 1], cur_position, box_positions)
     if (board[box[0], box[1] + 1] != WALL and path != [INVALID]):
@@ -175,7 +178,7 @@ def is_right_potential_move(box, board, cur_position, box_positions):
 def is_up_potential_move(box, board, cur_position, box_positions):
     # check if up is a wall
     # check if down is an empty space (so the agent can occupy it)
-    if board[box[0] + 1, box[1]] == WALL:
+    if board[box[0] + 1, box[1]] == WALL or [box[0] + 1, box[1]] in box_positions:
         return [INVALID]
     path = shortest_path_actions(board, [box[0] + 1, box[1]], cur_position, box_positions)
     if (board[box[0] - 1, box[1]] != WALL and path != [INVALID]):
@@ -187,7 +190,7 @@ def is_up_potential_move(box, board, cur_position, box_positions):
 def is_down_potential_move(box, board, cur_position, box_positions):
     # check if down is a wall
     # check if up is an empty space (so the agent can occupy it)
-    if board[box[0] - 1, box[1]] == WALL:
+    if board[box[0] - 1, box[1]] == WALL or [box[0] - 1, box[1]] in box_positions: 
         return [INVALID]
     path = shortest_path_actions(board, [box[0] - 1, box[1]], cur_position, box_positions)
     if (board[box[0] + 1, box[1]] != WALL and path != [INVALID]):
