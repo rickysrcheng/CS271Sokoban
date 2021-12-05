@@ -44,9 +44,13 @@ def preprocess(rows, columns, walls, boxes, goal):
                     aboveSet = list(set(board[r-1, minC+1:maxC]))
                     belowSet = list(set(board[r+1, minC+1:maxC]))
 
-                    if len(rowSet) == 1 and rowSet[0] == FLOOR:
-                        if (len(aboveSet) == 1 and aboveSet[0] == WALL) or (len(belowSet) == 1 and belowSet[0] == WALL):
-                            board[r, minC+1:maxC] = DEADLOCK
+                    for c in range(minC+1,maxC):
+                        if [r,c] in goal:
+                            break
+                    else:
+                        if len(rowSet) == 1 and rowSet[0] == FLOOR:
+                            if (len(aboveSet) == 1 and aboveSet[0] == WALL) or (len(belowSet) == 1 and belowSet[0] == WALL):
+                                board[r, minC+1:maxC] = DEADLOCK
 
                 if corner1[1] == corner2[1]:
                     c = corner1[1]
@@ -57,9 +61,13 @@ def preprocess(rows, columns, walls, boxes, goal):
                     leftSet = list(set(board[minR+1:maxR, c-1]))
                     rightSet = list(set(board[minR+1:maxR, c+1]))
 
-                    if len(colSet) == 1 and colSet[0] == FLOOR:
-                        if (len(leftSet) == 1 and leftSet[0] == WALL) or (len(rightSet) == 1 and rightSet[0] == WALL):
-                            board[minR+1:maxR, c] = DEADLOCK
+                    for r in range(minR+1, maxR):
+                        if [r,c] in goal:
+                            break
+                    else:
+                        if len(colSet) == 1 and colSet[0] == FLOOR:
+                            if (len(leftSet) == 1 and leftSet[0] == WALL) or (len(rightSet) == 1 and rightSet[0] == WALL):
+                                board[minR+1:maxR, c] = DEADLOCK
 
 
     return board
