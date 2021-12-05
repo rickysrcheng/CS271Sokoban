@@ -63,10 +63,10 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
         if episode % 10000 == 0:
             print(f'Episode {episode} steps: {step}')
 
-        if step > 30 and printBoard:
+        if step > 15 and printBoard and deadLock:
             print(f'Episode {episode} steps: {step}')
-            print(boardSolution)
-
+            print(print_board(board, cur_position, cur_boxes, goal_positions))
+        
         if goal_found(cur_position, goal_positions, cur_boxes):
             print(f'Episode {episode} steps: {step}')
             print_moves(moves)
@@ -163,7 +163,7 @@ def choose_box_and_action(box_dict, boxes_and_pathways):
     max_choices = {} #This will be a dict of tuples. {Box_Coordinate : (max action: q_value)}
     overall_best_box = [INVALID, INVALID]
     overall_best_action = INVALID
-    overall_best_q = -10000
+    overall_best_q = -np.inf
     for box in box_dict:
         if(box_dict.get(box)):
             best_action = max(box_dict.get(box), key=box_dict.get(box).get)
