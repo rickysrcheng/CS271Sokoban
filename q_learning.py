@@ -10,9 +10,9 @@ printBoard = True
 def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     q_vals = np.zeros((rows, columns, 4))
     moves = []
-    for episode in range(100000):
+    for episode in range(1000000):
         # Restart episode
-        #print(f"\nStart episode {k}")
+        #print(f"\nStart episode {episode}")
         cur_position = [start_pos for start_pos in start_position] #deep copy
         cur_boxes = [row[:] for row in start_boxes]
         step = 0
@@ -52,18 +52,23 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
                 print("Boxes positions: ", cur_boxes)
             if printBoard:
                 boardSolution += print_board(board, cur_position, cur_boxes, goal_positions)
+            
+            #print(print_board(board, cur_position, cur_boxes, goal_positions))
             #print("reward", reward)
             old_q_val = q_vals[old_position[0], old_position[1], action]
             td = reward + (DISCOUNT * np.max(q_vals[cur_position[0], cur_position[1]])) - old_q_val
             new_q_val = old_q_val + (LEARN_RATE * td)
             q_vals[old_position[0], old_position[1], action] = new_q_val
             step += 1
-        if step > 10 and printBoard:
-            print(f'Episode {episode}')
+        if episode % 10000 == 0:
+            print(f'Episode {episode} steps: {step}')
+
+        if step > 30 and printBoard:
+            print(f'Episode {episode} steps: {step}')
             print(boardSolution)
 
         if goal_found(cur_position, goal_positions, cur_boxes):
-            print(f'Episode {episode}')
+            print(f'Episode {episode} steps: {step}')
             print_moves(moves)
             print(boardSolution)
             break
@@ -370,7 +375,7 @@ def detect_deadlock(cur_position, board, boxes, move_row, move_col, goals, idx):
         return False
 
     # if in a preprocessed deadlock state (non-goal corners), it's a deadlock
-    if board[boxes[idx][0], boxes[idx][1]] == DEADLOCK:
+    if board[curBoxRow, curBoxCol] == DEADLOCK:
         return True
 
     # TODO:
@@ -379,9 +384,62 @@ def detect_deadlock(cur_position, board, boxes, move_row, move_col, goals, idx):
     # ex   #$_                                        _$_           
     #      _$#                                        _$#
     #      ___ is a deadlock for box just pushed but  ___ is not a deadlock
-    # idea: create a hashtable for deadlocks to save on processing speed every iteration
+    # check up, down, left, right of just pushed box for boxes
+    # if any of the boxes return deadlock, it's a deadlock, if not, check current box
+    # return if deadlock
+    
+    # check first if any moves are free
+    if check_surrounding_deadlock([curBoxRow, curBoxCol], board, boxes) == False:
+        return isDeadlock
 
+    # each direction is dead if agent can't occupy the other side
+    dOccupied = board[curBoxRow + 1, curBoxCol] == WALL
+    uOccupied = board[curBoxRow - 1, curBoxCol] == WALL
+    rOccupied = board[curBoxRow, curBoxCol + 1] == WALL
+    lOccupied = board[curBoxRow, curBoxCol - 1] == WALL
+    
+    uDeadlock = False
+    dDeadlock = False
+    lDeadlock = False
+    rDeadlock = False
+    if not dOccupied and [curBoxRow - 1, curBoxCol] in boxes:
+        # _$_ _$_
+        # #$_ $$_
+        # ___ _#_ won't be checked
+        #print('check udeadlock')
+        uDeadlock = check_surrounding_deadlock([curBoxRow - 1, curBoxCol], board, boxes)
+    if not uOccupied and [curBoxRow + 1, curBoxCol] in boxes:
+        #print('check ddeadlock')
+        dDeadlock = check_surrounding_deadlock([curBoxRow + 1, curBoxCol], board, boxes)
+    if not rOccupied and [curBoxRow, curBoxCol - 1] in boxes:
+        #print('check ldeadlock')
+        lDeadlock = check_surrounding_deadlock([curBoxRow, curBoxCol - 1], board, boxes)
+    if not lOccupied and [curBoxRow, curBoxCol + 1] in boxes:
+        #print('check rdeadlock')
+        rDeadlock = check_surrounding_deadlock([curBoxRow, curBoxCol + 1], board, boxes)
+    
+    #print(f'Deadlock states {uDeadlock} {dDeadlock} {lDeadlock} {rDeadlock}')
+    udDeadlock = (dOccupied or uDeadlock) or (uOccupied or dDeadlock)
+    lrDeadlock = (lOccupied or rDeadlock) or (rOccupied or lDeadlock)
+
+    #print(f'Final Deadlock states {lrDeadlock} {udDeadlock}')
+
+    isDeadlock = udDeadlock and lrDeadlock
     return isDeadlock
+
+def check_surrounding_deadlock(box, board, boxes):
+    # check if any moves are valid
+    # can't use potential moves straight up because of pseudo-corral deadlocks, ie, the agent is trapped in a subspace
+    lFree = (board[box[0], box[1] - 1] == FLOOR) and [box[0], box[1] - 1] not in boxes
+    rFree = (board[box[0], box[1] + 1] == FLOOR) and [box[0], box[1] + 1] not in boxes
+    lrFree = lFree and rFree
+    
+    uFree = (board[box[0] - 1, box[1]] == FLOOR) and [box[0] - 1, box[1]] not in boxes
+    dFree = (board[box[0] + 1, box[1]] == FLOOR) and [box[0] + 1, box[1]] not in boxes
+    udFree = uFree and dFree
+    #print(f'{box}, {lrFree}, {udFree}')
+    # returns true if there are no valid moves
+    return not lrFree and not udFree
 
 # If there is a pushable box, changes the position of that box
 # If box is moved onto a goal, return GOAL reward. If not, return no reward
