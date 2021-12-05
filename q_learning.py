@@ -4,6 +4,7 @@ from pathfinder import *
 import queue
 import random
 from sys import getsizeof
+from datetime import datetime
 
 verbose = False
 printBoard = True
@@ -16,7 +17,7 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     q_vals_exp = {start_tuples:np.zeros((len(start_tuples), 4))}
     print(q_vals_exp)
     moves = []
-    for episode in range(100000):
+    for episode in range(1000000):
         # Restart episode
         #print(f"\nStart episode {episode}")
         cur_position = [start_pos for start_pos in start_position] #deep copy
@@ -60,7 +61,7 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
 
             # Agent receives reward if it pushes a box onto a goal
             box_reward, deadLock = next_location(cur_position, action, board, cur_boxes, goal_positions)
-            reward = -1 + box_reward
+            reward = -(step**2) + box_reward
 
             if verbose:
                 print("\nCurrent position :", cur_position)
@@ -108,6 +109,9 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             step += 1
         if episode % 10000 == 0:
             print(f'Episode {episode} steps: {step}')
+            print(f'Size of q-table in bytes: {getsizeof(q_vals_exp)}')
+            print(f'Number of states in q-table: {len(q_vals_exp)}')
+            print(f'Current Time: {datetime.now()}')
 
         if step > 20 and printBoard and deadLock:
             print(f'Episode {episode} steps: {step}')
@@ -119,9 +123,17 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             print(f'Episode {episode} steps: {step} # of moves: {len(moves)}')
             print(f'Size of q-table in bytes: {getsizeof(q_vals_exp)}')
             print(f'Number of states in q-table: {len(q_vals_exp)}')
-            print_moves(moves)
-            print(boardSolution)
+            print(f'Current Time: {datetime.now()}')
+            #print_moves(moves)
+            #print(boardSolution)
+            with open('solve.txt', 'w') as f:
+                f.write(f'Episode {episode} steps: {step} # of moves: {len(moves)}\n')
+                f.write(f'Size of q-table in bytes: {getsizeof(q_vals_exp)}\n')
+                f.write(f'Number of states in q-table: {len(q_vals_exp)}\n')
+                f.write(print_moves(moves) + '\n')
+                f.write(boardSolution)
             break
+            
             
         moves = []
     # Final q_values after all episodes ran
@@ -163,9 +175,11 @@ def print_moves(moves):
     str_moves = str_moves.replace("3", "R")
 
     print(len(moves), str_moves)
+    return str_moves
 
 def make_tuple_key(boxes):
     return tuple(sorted([tuple(box) for box in boxes]))
+
 #Checks where boxes can be potentially moved. Once we have this, we can use the Q table to check which move would result
 #in the highest q value, and move our agent to perform the agent.
 def possible_box_moves(cur_boxes, board, q_vals, cur_position):
@@ -317,31 +331,6 @@ def goal_found(cur_position, goal_positions, boxes):
 def epsilon_greedy(epsilon):
     return np.random.random() < epsilon  #Returns true if less than epsilon, false otherwise
 
-def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, board, boxes):
-    actions = []  #making list of valid moves
-    if check_up_valid(curr_position, board, boxes):
-        actions.append(UP)
-    if check_down_valid(curr_position, board, rows, boxes):
-        actions.append(DOWN)
-    if check_left_valid(curr_position, board, boxes):
-        actions.append(LEFT)
-    if check_right_valid(curr_position, board, columns, boxes):
-        actions.append(RIGHT)
-
-    total_actions = [UP, DOWN, LEFT, RIGHT]
-    exclude = [i for i in actions + total_actions if i not in actions or i not in total_actions]
-    m = np.zeros(4, dtype=bool)
-    m[exclude] = True
-
-    if np.random.random() < epsilon: #return random from 0 to 1
-        #return argmax of q values for current position, will return an action
-        #only allow actions that were deemed allowed by the above validity checks
-        q_values_masked = np.ma.array(q_values[curr_position[0], curr_position[1]], mask=m)
-        return np.argmax(q_values_masked)
-
-    return np.random.choice(actions)
-
-
 def next_location(cur_position, actions, board, boxes, goals):
     reward = 0
     for action in actions:
@@ -359,62 +348,6 @@ def next_location(cur_position, actions, board, boxes, goals):
             cur_position[1] += 1
     return reward, deadlock
         
-#Checks that you won't go off the left side of the map, and that you're not running into a wall.
-def check_left_valid(cur_position, board, boxes):
-    column = cur_position[1]
-    check_inaccessible = board[cur_position[0], cur_position[1] - 1]
-    valid = False
-    is_box, can_push = can_move_box(cur_position, board, boxes, 0, -1)
-    if column != 0 and check_inaccessible != WALL:
-        valid = True
-
-        if is_box and not can_push: # Invalid move if can't push a box
-            valid = False 
-
-    return valid 
-
-#Checks that you won't go off right side of map, and that you're not running into a wall.
-def check_right_valid(cur_position, board, num_columns, boxes):
-    column = cur_position[1]
-    check_inaccessible = board[cur_position[0], cur_position[1] + 1]
-    valid = False
-    is_box, can_push = can_move_box(cur_position, board, boxes, 0, 1)
-    if (column != num_columns - 1) and check_inaccessible != WALL:  # if column value is not already at the very right
-        valid = True
-
-        if is_box and not can_push: # Invalid move if can't push a box
-            valid = False 
-
-    return valid 
-
-#Checks that you won't go off the top side of the map, and that you're not running into a wall.
-def check_up_valid(cur_position, board, boxes):
-    row = cur_position[0]
-    check_inaccessible = board[cur_position[0] - 1, cur_position[1]]
-    valid = False
-    is_box, can_push = can_move_box(cur_position, board, boxes, -1, 0)
-    if (row != 0) and check_inaccessible != WALL:  # if row value is not already at the very top
-        valid = True
-
-        if is_box and not can_push: # Invalid move if can't push a box
-            valid = False 
-
-    return valid 
-
-#Checks that you won't go off the bottom side of the map, and that you're not running into a wall.
-def check_down_valid(cur_position, board, num_rows, boxes):
-    row = cur_position[0]
-    check_inaccessible = board[cur_position[0] + 1, cur_position[1]]
-    valid = False
-    is_box, can_push = can_move_box(cur_position, board, boxes, 1, 0)
-    if (row != num_rows - 1) and check_inaccessible != WALL:  # if row value is not already at the very bottom
-        valid = True
-
-        if is_box and not can_push: # Invalid move if can't push a box
-            valid = False 
-
-    return valid 
-
 # If there is a box, checks if the box can be pushed
 # Cannot push box into wall or into another box 
 def can_move_box(cur_position, board, boxes, move_row, move_col): 
