@@ -29,10 +29,19 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             print("Current position :", cur_position)
             print("Boxes positions: ", start_boxes)
         deadLock = False
+        box_and_moves = possible_box_moves(cur_boxes, board, q_vals_exp, cur_position)
+        
+        paths = []
+        action = []
+        for b in box_and_moves[1]:
+            p = box_and_moves[1].get(b)
+            for k in p:
+                paths.append([p[k], b])
+        
         #Episode ends if all boxes are on goals or # of steps is reached
         while not goal_found(cur_position, goal_positions, cur_boxes) and step != 300 and not deadLock:
             old_boxes = make_tuple_key(cur_boxes)
-            box_and_moves = possible_box_moves(cur_boxes, board, q_vals_exp, cur_position) #returns overall best box, overall best action
+            #box_and_moves = possible_box_moves(cur_boxes, board, q_vals_exp, cur_position) #returns overall best box, overall best action
 
             if box_and_moves[0] == [-1]:
                 break
@@ -42,11 +51,6 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
                 action = box_and_moves[0][0]
                 best_box = box_and_moves[0][1]
             else: #action is randomly chosen from list of paths.
-                paths = []
-                for b in box_and_moves[1]:
-                    p = box_and_moves[1].get(b)
-                    for k in p:
-                        paths.append([p[k], b])
                 randomChoice = random.choice(paths)
                 action = randomChoice[0]
                 best_box = randomChoice[1]
@@ -75,6 +79,17 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             #td = reward + (DISCOUNT * np.max(q_vals[cur_position[0], cur_position[1]])) - old_q_val
             #new_q_val = old_q_val + (LEARN_RATE * td)
             #q_vals[old_position[0], old_position[1], action] = new_q_val
+            box_and_moves = possible_box_moves(cur_boxes, board, q_vals_exp, cur_position)
+            # get max q-value of possible actions at s_{t+1}
+            if box_and_moves[0] == [-1]:
+                break
+            paths = []
+            qValActions = []
+            for b in box_and_moves[1]:
+                p = box_and_moves[1].get(b)
+                for k in p:
+                    paths.append([p[k], b])
+                    qValActions.append(q_vals_exp[currKey][currKey.index(tuple(b)), p[k][-1]])
             
             if verbose:
                 print(f'Old q val: {old_q_val}')
@@ -84,8 +99,9 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
                 #print(f'Cur Key = {currKey}')
                 #print(f'Best box: {best_box}')
                 #print(q_vals_exp[old_boxes])
+                #print(f'max curr state: {np.max(qValActions)}')
                 old_q_val = q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]]
-                td = reward + (DISCOUNT * np.max(q_vals_exp[currKey])) - old_q_val
+                td = reward + (DISCOUNT * np.max(qValActions)) - old_q_val
                 new_q_val = old_q_val + (LEARN_RATE * td)
                 q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]] = new_q_val
             
@@ -93,17 +109,20 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
         if episode % 10000 == 0:
             print(f'Episode {episode} steps: {step}')
 
-        if step > 15 and printBoard and deadLock:
+        if step > 20 and printBoard and deadLock:
             print(f'Episode {episode} steps: {step}')
             print(f'Size of q-table in bytes: {getsizeof(q_vals_exp)}')
             print(f'Number of states in q-table: {len(q_vals_exp)}')
-            print(print_board(board, cur_position, cur_boxes, goal_positions))
+            #print(print_board(board, cur_position, cur_boxes, goal_positions))
         
         if goal_found(cur_position, goal_positions, cur_boxes):
-            print(f'Episode {episode} steps: {step}')
+            print(f'Episode {episode} steps: {step} # of moves: {len(moves)}')
+            print(f'Size of q-table in bytes: {getsizeof(q_vals_exp)}')
+            print(f'Number of states in q-table: {len(q_vals_exp)}')
             print_moves(moves)
             print(boardSolution)
             break
+            
         moves = []
     # Final q_values after all episodes ran
     # for k,v in q_vals_exp.items():
@@ -226,7 +245,7 @@ def choose_box_and_action(box_dict, boxes_and_pathways):
 #Returns the path needed to push the box into the position.
 def is_left_potential_move(box, board, cur_position, box_positions):
     #check if to the left is a wall
-    if board[box[0], box[1] - 1] == WALL or [box[0], box[1] - 1] in box_positions:
+    if board[box[0], box[1] - 1] != FLOOR or [box[0], box[1] - 1] in box_positions:
         return [INVALID]
     #check that agent can reach the location to the right of the box using pathfinder.
     if board[box[0], box[1] + 1] == WALL or [box[0], box[1] + 1] in box_positions:
@@ -241,7 +260,7 @@ def is_left_potential_move(box, board, cur_position, box_positions):
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_right_potential_move(box, board, cur_position, box_positions):
     # check if to the right is a wall
-    if board[box[0], box[1] + 1] == WALL or [box[0], box[1] + 1] in box_positions:
+    if board[box[0], box[1] + 1] != FLOOR or [box[0], box[1] + 1] in box_positions:
         return [INVALID]
     # check if to the left is an empty space (so the agent can occupy it)
     if board[box[0], box[1] - 1] == WALL or [box[0], box[1] - 1] in box_positions:
@@ -255,7 +274,7 @@ def is_right_potential_move(box, board, cur_position, box_positions):
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_up_potential_move(box, board, cur_position, box_positions):
     # check if up is a wall
-    if board[box[0] - 1, box[1]] == WALL or [box[0] - 1, box[1]] in box_positions:
+    if board[box[0] - 1, box[1]] != FLOOR or [box[0] - 1, box[1]] in box_positions:
         return [INVALID]
     # check if down is an empty space (so the agent can occupy it)
     if board[box[0] + 1, box[1]] == WALL or [box[0] + 1, box[1]] in box_positions:
@@ -269,7 +288,7 @@ def is_up_potential_move(box, board, cur_position, box_positions):
 # Parameters: accepts a box's coordinates, current agent position, and the board.
 def is_down_potential_move(box, board, cur_position, box_positions):
     # check if down is a wall
-    if board[box[0] + 1, box[1]] == WALL or [box[0] + 1, box[1]] in box_positions:
+    if board[box[0] + 1, box[1]] != FLOOR or [box[0] + 1, box[1]] in box_positions:
         return [INVALID]
     # check if up is an empty space (so the agent can occupy it)
     if board[box[0] - 1, box[1]] == WALL or [box[0] - 1, box[1]] in box_positions: 
@@ -325,7 +344,6 @@ def epsilon_greedy_get_action(curr_position, epsilon, q_values, rows, columns, b
 
 def next_location(cur_position, actions, board, boxes, goals):
     reward = 0
-
     for action in actions:
         if action == UP:                                 #move_row, move_column
             reward, deadlock = move_box(cur_position, board, boxes, -1, 0, goals)
@@ -339,7 +357,6 @@ def next_location(cur_position, actions, board, boxes, goals):
         else:
             reward, deadlock = move_box(cur_position, board, boxes, 0, 1, goals)
             cur_position[1] += 1
-
     return reward, deadlock
         
 #Checks that you won't go off the left side of the map, and that you're not running into a wall.
