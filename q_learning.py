@@ -5,6 +5,7 @@ import queue
 import random
 from sys import getsizeof
 from datetime import datetime
+from scipy.special import comb
 
 verbose = False
 printBoard = True
@@ -15,9 +16,16 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     start_tuples = make_tuple_key(start_boxes)
     print(start_tuples)
     q_vals_exp = {start_tuples:np.zeros((len(start_tuples), 4))}
-    print(q_vals_exp)
+    
+    unique, counts = np.unique(board, return_counts=True)
+    elements = dict(zip(unique, counts))
+    print(f'Number of possible floor space: {elements[FLOOR]}')
+    print(f'Number of boxes: {len(start_boxes)}')
+    totalStates = comb(elements[FLOOR], len(start_boxes))
+    print(f'Number of possible states: {totalStates}')
+    start_time = datetime.now()
     moves = []
-    for episode in range(1000000):
+    for episode in range(1000):
         # Restart episode
         #print(f"\nStart episode {episode}")
         cur_position = [start_pos for start_pos in start_position] #deep copy
@@ -80,9 +88,19 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             #td = reward + (DISCOUNT * np.max(q_vals[cur_position[0], cur_position[1]])) - old_q_val
             #new_q_val = old_q_val + (LEARN_RATE * td)
             #q_vals[old_position[0], old_position[1], action] = new_q_val
+
+            # for next state
             box_and_moves = possible_box_moves(cur_boxes, board, q_vals_exp, cur_position)
+
             # get max q-value of possible actions at s_{t+1}
+
+            # if no moves, end current episode AND update q-values
             if box_and_moves[0] == [-1]:
+                reward += NOMOVES
+                old_q_val = q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]]
+                td = reward - old_q_val
+                new_q_val = old_q_val + (LEARN_RATE * td)
+                q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]] = new_q_val
                 break
             paths = []
             qValActions = []
@@ -110,10 +128,10 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
         if episode % 10000 == 0:
             print(f'Episode {episode} steps: {step}')
             print(f'Size of q-table in bytes: {getsizeof(q_vals_exp)}')
-            print(f'Number of states in q-table: {len(q_vals_exp)}')
+            print(f'Number of states in q-table: {len(q_vals_exp)}/{totalStates} {len(q_vals_exp)/totalStates:.2f}% of total state space traversed')
             print(f'Current Time: {datetime.now()}')
 
-        if step > 20 and printBoard and deadLock:
+        if step > 200 and printBoard and deadLock:
             print(f'Episode {episode} steps: {step}')
             print(f'Size of q-table in bytes: {getsizeof(q_vals_exp)}')
             print(f'Number of states in q-table: {len(q_vals_exp)}')
@@ -129,7 +147,8 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             with open('solve.txt', 'w') as f:
                 f.write(f'Episode {episode} steps: {step} # of moves: {len(moves)}\n')
                 f.write(f'Size of q-table in bytes: {getsizeof(q_vals_exp)}\n')
-                f.write(f'Number of states in q-table: {len(q_vals_exp)}\n')
+                f.write(f'Number of states in q-table: {len(q_vals_exp)}/{totalStates} {len(q_vals_exp)/totalStates:.2f}% of total state space traversed\n')
+                f.write(f'Started: {start_time}\nFound: {datetime.now()}\n')
                 f.write(print_moves(moves) + '\n')
                 f.write(boardSolution)
             break
