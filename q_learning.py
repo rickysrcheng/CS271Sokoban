@@ -95,12 +95,8 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             # get max q-value of possible actions at s_{t+1}
 
             # if no moves, end current episode AND update q-values
-            if box_and_moves[0] == [-1]:
-                reward += NOMOVES
-                old_q_val = q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]]
-                td = reward - old_q_val
-                new_q_val = old_q_val + (LEARN_RATE * td)
-                q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]] = new_q_val
+            if box_and_moves[0] == [-1] and not goal_found(cur_position, goal_positions, cur_boxes):
+                q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]] = -np.Inf
                 break
             paths = []
             qValActions = []
