@@ -25,7 +25,7 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
     print(f'Number of possible states: {totalStates}')
     start_time = datetime.now()
     moves = []
-    for episode in range(1000):
+    for episode in range(10000):
         # Restart episode
         #print(f"\nStart episode {episode}")
         cur_position = [start_pos for start_pos in start_position] #deep copy
@@ -98,9 +98,9 @@ def q_learn(board, start_boxes, start_position, goal_positions, rows, columns):
             if box_and_moves[0] == [-1]:
                 if not goal_found(cur_position, goal_positions, cur_boxes):
                     old_q_val = q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]]
-                    td = reward + (DISCOUNT * NOMOVES) - old_q_val
+                    td = reward + NOMOVES - old_q_val
                     new_q_val = old_q_val + (LEARN_RATE * td)
-                    q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]] = -np.Inf
+                    q_vals_exp[old_boxes][old_boxes.index(tuple(best_box)), action[-1]] = new_q_val
                 break
             paths = []
             qValActions = []
